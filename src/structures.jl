@@ -1,34 +1,30 @@
-# Cấu trúc dữ liệu của FP-tree (Han, Pei, Yin, 2000).
-
-"""
-Một node của FP-tree. Root có `item = 0` (nhãn "null" trong bài báo).
-"""
-mutable struct FPNode
-    item::Int
+mutable struct FPNode{T}
+    item_name::Union{T, Nothing}
     count::Int
-    parent::Union{FPNode,Nothing}
-    children::Dict{Int,FPNode}        # item => node con
-    nodelink::Union{FPNode,Nothing}   # node kế tiếp có cùng item
+    node_link::Union{FPNode{T}, Nothing}
+    parent::Union{FPNode{T}, Nothing}
+    children::Dict{T, FPNode{T}}
+
+    function FPNode{T}(item_name::Union{T, Nothing}, count::Int, parent::Union{FPNode{T}, Nothing}=nothing) where T
+        new{T}(item_name, count, nothing, parent, Dict{T, FPNode{T}}())
+    end
 end
 
-FPNode(item::Int, count::Int, parent::Union{FPNode,Nothing}) =
-    FPNode(item, count, parent, Dict{Int,FPNode}(), nothing)
+mutable struct HeaderTableEntry{T}
+    item_name::T
+    header_of_node_link::Union{FPNode{T}, Nothing}
 
-"""
-FP-tree kèm header table. `header[i]` là node đầu tiên của chuỗi node-link của
-item `i`, `last[i]` là node cuối để nối thêm node mới trong O(1).
-"""
-struct FPTree
-    root::FPNode
-    flist::Vector{Int}          # item phổ biến, support giảm dần
-    rank::Dict{Int,Int}         # item => vị trí trong flist
-    support::Dict{Int,Int}      # item => support
-    header::Dict{Int,FPNode}
-    last::Dict{Int,FPNode}
+    function HeaderTableEntry{T}(item_name::T) where T
+        new{T}(item_name, nothing)
+    end
 end
 
-function FPTree(flist::Vector{Int}, support::Dict{Int,Int})
-    rank = Dict(item => i for (i, item) in enumerate(flist))
-    return FPTree(FPNode(0, 0, nothing), flist, rank, support,
-                  Dict{Int,FPNode}(), Dict{Int,FPNode}())
+struct FPTree{T}
+    root::FPNode{T}
+    header_table::Dict{T, HeaderTableEntry{T}}
+
+    function FPTree{T}(header_table::Dict{T, HeaderTableEntry{T}}) where T
+        root_node = FPNode{T}(nothing, 0)
+        new{T}(root_node, header_table)
+    end
 end
