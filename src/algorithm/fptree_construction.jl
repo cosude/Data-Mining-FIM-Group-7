@@ -5,6 +5,9 @@ function fptree_construction(DB::Vector{Vector{T}}, ξ::Int) where T
     # 1. Scan the transaction database DB once. Collect F, the set of frequent items, and the
     # support of each frequent item. Sort F in support-descending order as FList, the list of
     # frequent items
+    support = count_supports(DB)
+    FList = build_flist(support, ξ)
+    header_table = build_header_table(FList)
 
     # 2. Create the root of an FP-tree, T , and label it as “null”. 
     tree = FPTree{T}(header_table)

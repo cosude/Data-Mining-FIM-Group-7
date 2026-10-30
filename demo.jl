@@ -9,13 +9,16 @@ function main(args)
     minsup_count = minsup_to_count(opts["minsup"], length(db))
     println("Số giao dịch: ", length(db), ", minsup_count = ", minsup_count)
 
-    tree = build_fptree(db, minsup_count)
-    println("F-list: ", join(("$i:$(tree.support[i])" for i in tree.flist), " "))
+    support = count_supports(db)
+    FList = build_flist(support, minsup_count)
+    println("F-list: ", join(("$i:$(support[i])" for i in FList), " "))
+
+    tree = fptree_construction(db, minsup_count)
     println("Số node của FP-tree: ", count_nodes(tree))
-    length(tree.flist) <= 30 && print_tree(tree)
+    length(FList) <= 30 && print_tree(tree)
 
     # TODO: thay bằng kết quả fp_growth(tree, minsup_count) khi cài xong FP-Growth.
-    itemsets = [([i], tree.support[i]) for i in tree.flist]
+    itemsets = [([i], support[i]) for i in FList]
     write_spmf(opts["output"], itemsets)
     println("Đã ghi ", length(itemsets), " itemset vào ", opts["output"])
 end

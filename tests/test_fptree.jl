@@ -16,14 +16,24 @@ function walk(tree, path)
     return node
 end
 
-@testset "FP-tree construction" begin
-    tree = build_fptree(HAN_DB, 3)
+@testset "FP-tree bước 1: support, FList, header table" begin
+    support = count_supports(HAN_DB)
+    @test support[c] == 4 && support[f] == 4 && support[a] == 3
+    @test support[12] == 2 && support[19] == 1          # l:2, s:1
 
-    @testset "F-list và support" begin
-        # c và f cùng support 4, item nhỏ hơn (c=3) đứng trước
-        @test tree.flist == [c, f, a, b, m, p]
-        @test tree.support == Dict(c => 4, f => 4, a => 3, b => 3, m => 3, p => 3)
-    end
+    # c và f cùng support 4, item nhỏ hơn (c=3) đứng trước
+    FList = build_flist(support, 3)
+    @test FList == [c, f, a, b, m, p]
+    @test isempty(build_flist(support, 6))
+
+    ht = build_header_table(FList)
+    @test sort(collect(keys(ht))) == sort(FList)
+    @test all(ht[i].item_name == i && ht[i].header_of_node_link === nothing for i in FList)
+end
+
+@testset "FP-tree bước 2: fptree_construction" begin
+    tree = fptree_construction(HAN_DB, 3)
+    support = count_supports(HAN_DB)
 
     @testset "Hình dạng cây" begin
         expected = Dict(
@@ -40,11 +50,10 @@ end
     end
 
     @testset "Node-link: tổng count bằng support" begin
-        for item in tree.flist
+        for item in keys(tree.header_table)
             nodes = nodelinks(tree, item)
-            @test all(n.item == item for n in nodes)
-            @test sum(n.count for n in nodes) == tree.support[item]
-            @test tree.last[item] === nodes[end]
+            @test all(n.item_name == item for n in nodes)
+            @test sum(n.count for n in nodes) == support[item]
         end
         @test length(nodelinks(tree, b)) == 3
     end
@@ -53,16 +62,16 @@ end
         node = walk(tree, [c, f, a, m, p])
         path = Int[]
         while node.parent !== nothing
-            push!(path, node.item)
+            push!(path, node.item_name)
             node = node.parent
         end
         @test reverse(path) == [c, f, a, m, p]
     end
 
     @testset "Trường hợp biên" begin
-        @test count_nodes(build_fptree(HAN_DB, 6)) == 0           # không item nào phổ biến
-        @test count_nodes(build_fptree(Vector{Int}[], 1)) == 0    # CSDL rỗng
-        t = build_fptree([[1, 2], [1, 2], [1, 2]], 1)              # 3 giao dịch giống nhau
+        @test count_nodes(fptree_construction(HAN_DB, 6)) == 0          # không item nào phổ biến
+        @test count_nodes(fptree_construction(Vector{Int}[], 1)) == 0   # CSDL rỗng
+        t = fptree_construction([[1, 2], [1, 2], [1, 2]], 1)            # 3 giao dịch giống nhau
         @test count_nodes(t) == 2 && walk(t, [1, 2]).count == 3
     end
 end
