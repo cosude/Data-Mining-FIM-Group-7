@@ -1,6 +1,3 @@
-include("../utils.jl")
-include("../structures.jl")
-
 function fptree_construction(DB::Vector{Vector{T}}, ξ::Int) where T
     # 1. Scan the transaction database DB once. Collect F, the set of frequent items, and the
     # support of each frequent item. Sort F in support-descending order as FList, the list of
@@ -64,5 +61,60 @@ function insert_tree!(tree::FPTree{ItemType}, p_P::AbstractVector{ItemType}, T_n
     if length(p_P) > 1
         P = p_P[2:end] # P is the remaining list
         insert_tree!(tree, P, N)
+    end
+end
+
+# Optimized version
+function fptree_construction(::Type{OptFPTree}, DB::Vector{Vector{Int}}, ξ::Int)
+    support = count_supports(DB)
+    FList = build_flist(support, ξ)
+    header_table = build_opt_header_table(FList, support)
+    tree = OptFPTree{Int}(header_table)
+    
+    max_item = isempty(FList) ? 0 : maximum(FList)
+    in_trans = falses(max_item) # BitArray
+
+    for Trans in DB
+        for item in Trans
+            if item <= max_item && haskey(header_table, item)
+                in_trans[item] = true
+            end
+        end
+        
+        sorted_frequent_items = Int[]
+        sizehint!(sorted_frequent_items, length(Trans))
+        for item in FList
+            if item <= max_item && in_trans[item]
+                push!(sorted_frequent_items, item)
+            end
+        end
+        
+        if !isempty(sorted_frequent_items)
+            insert_tree!(tree, sorted_frequent_items)
+        end
+        
+        for item in Trans
+            if item <= max_item
+                in_trans[item] = false
+            end
+        end
+    end
+    return tree
+end
+
+function insert_tree!(tree::OptFPTree{Int}, items::AbstractVector{Int})
+    current_node = tree.root
+    for item in items
+        if haskey(current_node.children, item)
+            current_node = current_node.children[item]
+            current_node.count += 1
+        else
+            new_node = OptFPNode{Int}(item, 1, current_node)
+            current_node.children[item] = new_node
+            
+            push!(tree.header_table[item].nodes, new_node)
+            
+            current_node = new_node
+        end
     end
 end

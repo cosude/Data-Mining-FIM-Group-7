@@ -33,3 +33,10 @@ Tạo header table rỗng, mỗi frequent item một entry; node-link được n
 function build_header_table(FList::Vector{T}) where T
     return Dict{T,HeaderTableEntry{T}}(item => HeaderTableEntry{T}(item) for item in FList)
 end
+
+# Optimized build_header_table
+function build_opt_header_table(FList::Vector{T}, support::Dict{T,Int}) where T
+    return Dict{T,OptHeaderTableEntry{T}}(
+        item => OptHeaderTableEntry{T}(item, support[item]) for item in FList
+    )
+end
