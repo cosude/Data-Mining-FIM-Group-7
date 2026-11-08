@@ -1,3 +1,13 @@
 data/benchmark/
 *.cov
 .vscode/
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex(busy)
+*.synctex.gz
+*.toc
+*.bbl
+*.blg
