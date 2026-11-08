@@ -48,6 +48,50 @@ MSSV: 24127549}
 \subsection{Xử lý đầu vào và đầu ra}
 
 \subsection{Cài đặt cấu trúc dữ liệu FP-tree}
+Frequent-pattern tree (hay FP-tree) và cấu trúc dữ liệu dạng cây được dùng để khai thác các tập phổ biến mà không cần sinh tập ứng viên. Dựa vào mô tả của bài báo gốc, nhóm đã cài đặt các cấu trúc dữ liệu như sau:
+
+\textbf{\texttt{FPNode}:}
+Mỗi nút trong FP-tree gồm có các thuộc tính sau: \texttt{item\_name} (tên của item), \texttt{count} (số lượng giao dịch có chung tiền tố từ gốc đến nút hiện tại), và \texttt{node\_link} (con trỏ đến nút tiếp theo có cùng \texttt{item\_name}).
+
+Để phục vụ cho các thao tác xây dựng cây và rút trích, cấu trúc nút được tổ chức thêm hai trường:
+\begin{itemize}
+    \item \texttt{parent::Union\{FPNode\{T\}, Nothing\}}: Nút cha.
+    \item \texttt{children::Dict\{T, FPNode\{T\}\}}: Tập các nút con.
+\end{itemize}
+
+\textbf{\texttt{HeaderTableEntry}:}
+Mỗi dòng trong bảng tiêu đề (Header Table) chứa \texttt{item\_name} và con trỏ \texttt{header\_of\_node\_link} trỏ đến nút đầu tiên có cùng \texttt{item\_name} trong FP-tree.
+
+\textbf{\texttt{FPTree}:}
+Cấu trúc \texttt{FPTree} chứa nút gốc (\texttt{root}) cùng với bảng tiêu đề (\texttt{header\_table}). Nhóm mở rộng thuộc tính \texttt{item\_name} cho nút gốc thành \texttt{Union\{T, Nothing\}}, khởi tạo bẳng \texttt{nothing} và  \texttt{count} bằng 0.
+
+Nhìn chung, cài đặt cơ bản đã hiện thực hóa đầy đủ cấu trúc cốt lõi được mô tả trong bài báo bằng các cấu trúc dữ liệu có sẵn của Julia.
+
+\subsection{Cài đặt giải thuật xây FP-tree}
+Theo bài báo gốc, FP-tree được xây dựng qua hai lượt duyệt cơ sở dữ liệu giao dịch. Nhóm đã cài đặt lại giải thuật theo mô tả thông qua hai hàm \texttt{fptree\_construction} và \texttt{insert\_tree!} như sau:
+
+\textbf{Duyệt CSDL lần 1 (Tạo F-List và Header Table):}
+Trong hàm \texttt{fptree\_construction}, CSDL được duyệt lần đầu bằng hàm \texttt{count\_supports} để đếm tần suất xuất hiện (support count) của tất cả item. Sau đó, hàm \texttt{build\_flist} lọc và sắp xếp các item có thõa mãn ngưỡng hỗ trợ tối thiểu (minsupport) ($\xi$) giảm dần theo support count để tạo thành danh sách F-List. Các phần tử trong F-List trở thành một dòng trong Header Table với \texttt{node\_link} là \texttt{nothing}.
+
+\textbf{Duyệt CSDL lần 2 (Xây dựng cây):}
+Thuật toán khởi tạo một \texttt{FPTree} và tiếp tục duyệt lại từng giao dịch (\texttt{Trans}) trong CSDL.
+\begin{itemize}
+    \item Tại mỗi giao dịch, hàm \texttt{filter\_and\_sort} sẽ lọc ra các item phổ biến và sắp xếp theo thứ tự F-List.
+    \item Theo bài báo, danh sách item sau khi sắp xếp được biểu diễn bởi $[p \mid P]$, với $p$ là phần tử đầu tiên và $P$ là các phần tử còn lại. Nếu mảng không rỗng, hàm \texttt{insert\_tree!} sẽ được gọi để chèn nhánh này vào cây.
+\end{itemize}
+
+\textbf{Hàm \texttt{insert\_tree!}:}
+\texttt{insert\_tree!} và một hàm đệ quy để chèn các (\texttt{p\_P}) vào \texttt{FPTree}, cụ thể như sau:
+\begin{itemize}
+    \item Trích xuất phần tử đầu tiên $p = \texttt{p\_P[1]}$.
+    \item Trường hợp nút đang xét $T$ có nút con là item $p$: tăng count thêm 1.
+    \item Trường hợp nút đang xét $T$ không có nút con là item $p$: tạo nút con mới $N$ có nhãn $p$, \texttt{count = 1} cho $T$.
+    \item \textbf{Cập nhật node-link:} Khi $N$ được tạo với nhãn item $p$, nếu dòng của item này trong Header Table chưa có \texttt{node\_link} thì gán $N$ trực tiếp làm \texttt{header\_of\_node\_link}. Ngược lại, thuật toán duyệt theo các \texttt{node\_link} tới cuối và nối thêm $N$.
+    \item Cuối cùng, nếu tập $P$ (tức \texttt{p\_P[2:end]}) không rỗng, gọi đệ quy \texttt{insert\_tree!(tree, P, N)} để tiếp tục chèn các item còn lại.
+\end{itemize}
+
+\textbf{Đánh giá độ phức tạp:} 
+Theo cài đặt cơ bản này, quá trình chèn một giao dịch \texttt{Trans} vào cây tiêu tốn thời gian $\mathcal{O}(|\text{freq}(\text{Trans})|)$, trong đó $|\text{freq}(\text{Trans})|$ là số lượng các item phổ biến của giao dịch.
 
 \subsection{Cài đặt giải thuật FP-growth}
 
