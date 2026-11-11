@@ -16,6 +16,8 @@ function walk(tree, path)
     return node
 end
 
+# Hàm helper xử lý sự khác biệt cấu trúc khi lấy danh sách các node cùng item
+
 @testset "FP-tree bước 1: support, FList, header table" begin
     support = count_supports(HAN_DB)
     @test support[c] == 4 && support[f] == 4 && support[a] == 3
@@ -26,13 +28,22 @@ end
     @test FList == [c, f, a, b, m, p]
     @test isempty(build_flist(support, 6))
 
+    # Header Table
     ht = build_header_table(FList)
     @test sort(collect(keys(ht))) == sort(FList)
     @test all(ht[i].item_name == i && ht[i].header_of_node_link === nothing for i in FList)
+
+    # Optimized Header Table
+    opt_ht = build_opt_header_table(FList, support)
+    @test sort(collect(keys(opt_ht))) == sort(FList)
+    @test all(opt_ht[i].item_name == i && isempty(opt_ht[i].nodes) for i in FList)
 end
 
-@testset "FP-tree bước 2: fptree_construction" begin
-    tree = fptree_construction(HAN_DB, 3)
+@testset "FP-tree bước 2: fptree_construction ($name)" for (name, build_tree) in [
+    ("Original", (db, minsup) -> fptree_construction(db, minsup)),
+    ("Optimized", (db, minsup) -> fptree_construction(OptFPTree, db, minsup))
+]
+    tree = build_tree(HAN_DB, 3)
     support = count_supports(HAN_DB)
 
     @testset "Hình dạng cây" begin
@@ -69,9 +80,9 @@ end
     end
 
     @testset "Trường hợp biên" begin
-        @test count_nodes(fptree_construction(HAN_DB, 6)) == 0          # không item nào phổ biến
-        @test count_nodes(fptree_construction(Vector{Int}[], 1)) == 0   # CSDL rỗng
-        t = fptree_construction([[1, 2], [1, 2], [1, 2]], 1)            # 3 giao dịch giống nhau
+        @test count_nodes(build_tree(HAN_DB, 6)) == 0          # không item nào phổ biến
+        @test count_nodes(build_tree(Vector{Int}[], 1)) == 0   # CSDL rỗng
+        t = build_tree([[1, 2], [1, 2], [1, 2]], 1)            # 3 giao dịch giống nhau
         @test count_nodes(t) == 2 && walk(t, [1, 2]).count == 3
     end
 end
