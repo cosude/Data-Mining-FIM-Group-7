@@ -14,20 +14,23 @@ end
 
 mutable struct HeaderTableEntry{T}
     item_name::T
+    support::Int
     header_of_node_link::Union{FPNode{T}, Nothing}
+    tail_of_node_link::Union{FPNode{T}, Nothing} # last node of the chain, for O(1) append
 
-    function HeaderTableEntry{T}(item_name::T) where T
-        new{T}(item_name, nothing)
+    function HeaderTableEntry{T}(item_name::T, support::Int=0) where T
+        new{T}(item_name, support, nothing, nothing)
     end
 end
 
 struct FPTree{T} <: AbstractFPTree{T}
     root::FPNode{T}
     header_table::Dict{T, HeaderTableEntry{T}}
+    flist::Vector{T} # frequent items sorted by descending support
 
-    function FPTree{T}(header_table::Dict{T, HeaderTableEntry{T}}) where T
+    function FPTree{T}(header_table::Dict{T, HeaderTableEntry{T}}, flist::Vector{T}) where T
         root_node = FPNode{T}(nothing, 0)
-        new{T}(root_node, header_table)
+        new{T}(root_node, header_table, flist)
     end
 end
 

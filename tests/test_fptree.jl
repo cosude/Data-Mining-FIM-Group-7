@@ -29,9 +29,9 @@ end
     @test isempty(build_flist(support, 6))
 
     # Header Table
-    ht = build_header_table(FList)
+    ht = build_header_table(FList, support)
     @test sort(collect(keys(ht))) == sort(FList)
-    @test all(ht[i].item_name == i && ht[i].header_of_node_link === nothing for i in FList)
+    @test all(ht[i].item_name == i && ht[i].support == support[i] && ht[i].header_of_node_link === nothing for i in FList)
 
     # Optimized Header Table
     opt_ht = build_opt_header_table(FList, support)
