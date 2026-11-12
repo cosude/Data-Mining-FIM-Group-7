@@ -6,7 +6,8 @@ const DATASETS = Dict(
     "chess.txt"      => "$SPMF_BASE/chess.txt",
     "mushroom.txt"   => "$SPMF_BASE/mushroom.txt",
     "retail.txt"     => "$SPMF_BASE/retail.txt",
-    "accidents.txt"  => "$SPMF_BASE/accidents.txt"
+    "accidents.txt"  => "$SPMF_BASE/accidents.txt",
+    "T10I4D100K.txt" => "$SPMF_BASE/T10I4D100K.txt"
 )
 
 # Navigate from scripts/ up to the root, then into data/benchmark/

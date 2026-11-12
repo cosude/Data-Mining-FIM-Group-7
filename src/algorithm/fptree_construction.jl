@@ -1,4 +1,4 @@
-function fptree_construction(DB::Vector{Vector{T}}, ξ::Int) where T
+function fptree_construction(::Type{FPTree}, DB::Vector{Vector{T}}, ξ::Int) where T
     # 1. Scan the transaction database DB once. Collect F, the set of frequent items, and the
     # support of each frequent item. Sort F in support-descending order as FList, the list of
     # frequent items

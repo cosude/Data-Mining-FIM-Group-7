@@ -1,10 +1,14 @@
-function mine_fpgrowth_opt(tree::OptFPTree{Int}, minsup::Int)
+function mine_fpgrowth(tree::FPTree{Int}, minsup::Int)
+    return nothing
+end
+
+function mine_fpgrowth(tree::OptFPTree{Int}, minsup::Int)
     results = Tuple{Vector{Int}, Int}[]
-    _fpgrowth_opt_step!(tree, Int[], minsup, results)
+    _fpgrowth_step!(tree, Int[], minsup, results)
     return results
 end
 
-function _fpgrowth_opt_step!(
+function _fpgrowth_step!(
     tree::OptFPTree{Int}, 
     alpha::Vector{Int}, 
     minsup::Int, 
@@ -111,7 +115,7 @@ function _fpgrowth_opt_step!(
         end
         
         # Recursion
-        _fpgrowth_opt_step!(cond_tree, beta, minsup, results)
+        _fpgrowth_step!(cond_tree, beta, minsup, results)
     end
 end
 

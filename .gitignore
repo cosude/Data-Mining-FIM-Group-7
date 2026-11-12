@@ -1,4 +1,4 @@
-data/benchmark/
+data/
 *.cov
 .vscode/
 *.aux

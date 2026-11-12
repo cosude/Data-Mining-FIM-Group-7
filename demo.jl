@@ -13,7 +13,7 @@ function main(args)
     FList = build_flist(support, minsup_count)
     println("F-list: ", join(("$i:$(support[i])" for i in FList), " "))
 
-    tree = fptree_construction(db, minsup_count)
+    tree = fptree_construction(FPTree, db, minsup_count)
     println("Số node của FP-tree: ", count_nodes(tree))
     length(FList) <= 30 && print_tree(tree)
 

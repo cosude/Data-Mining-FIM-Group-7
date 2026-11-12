@@ -96,6 +96,20 @@ Theo cài đặt cơ bản này, quá trình chèn một giao dịch \texttt{Tra
 \subsection{Cài đặt giải thuật FP-growth}
 
 \subsection{Kỹ thuật tối ưu hóa bộ nhớ và tốc độ cho giải thuật FP-growth}
+\textbf{Tối ưu cấu trúc dữ liệu:}
+Trong cấu trúc FP-tree cơ bản, việc duyệt và chèn các nút mang cùng item được thực hiện qua danh sách liên kết (node-link). Thao tác này đòi hỏi chi phí $\mathcal{O}(k)$ để tìm đến nút cuối cùng và gây ra hiện tượng phân mảnh bộ nhớ (pointer-chasing), làm giảm hiệu năng của bộ nhớ đệm CPU (CPU Cache). 
+Trong bản tối ưu, danh sách liên kết được thay thế hoàn toàn bằng một mảng liên tục (\texttt{Vector\{OptFPNode\}}) đặt bên trong \texttt{OptHeaderTableEntry}. Cải tiến này giúp thao tác chèn nút mới đạt độ phức tạp $\mathcal{O}(1)$ (\texttt{push!}), đồng thời quá trình duyệt ngược để trích xuất cơ sở mẫu điều kiện (Conditional Pattern Base) diễn ra tuần tự trên vùng nhớ vật lý, giúp tăng tốc độ truy xuất lên nhiều lần.
+
+\textbf{Khử đệ quy (De-recursion) trong quá trình dựng cây:}
+Thuật toán chèn giao dịch gốc (\texttt{insert\_tree!}) sử dụng đệ quy cho mỗi item trong giao dịch. Với các bộ dữ liệu dày đặc (dense) có độ dài giao dịch lớn, đệ quy tạo ra hàng ngàn khung xếp (stack frames), dẫn đến rủi ro tràn bộ nhớ (StackOverflow) và tốn kém chi phí quản lý ngữ cảnh. Nhóm đã áp dụng kỹ thuật khử đệ quy, chuyển đổi toàn bộ hàm \texttt{insert\_tree!} và hàm dựng cây điều kiện thành vòng lặp (Iterative Loop). Nút con được chèn và duyệt theo chiều sâu bằng cách cập nhật trực tiếp con trỏ \texttt{current\_node}, tiết kiệm đáng kể bộ nhớ ngăn xếp.
+
+\textbf{Tái sử dụng vùng nhớ bằng BitArray nhằm giảm tải GC:}
+Ở lượt quét CSDL thứ hai, thao tác lọc các item phổ biến từ mỗi giao dịch và sắp xếp theo F-List ban đầu được thực hiện bằng cách cấp phát liên tục cấu trúc \texttt{Set}. Việc này tạo ra một lượng lớn rác bộ nhớ, gây áp lực khổng lồ lên hệ thống thu gom rác (Garbage Collector - GC) của Julia, làm thuật toán bị đứng (pause) liên tục.
+Nhóm đã tối ưu bằng cách khởi tạo duy nhất một \texttt{BitArray} toàn cục chia sẻ qua các vòng lặp. \texttt{BitArray} có chi phí lưu trữ cực nhỏ (1 bit cho 1 item). Các bit tương ứng với item trong giao dịch được bật lên (true) để lọc tuần tự theo F-List, sau đó được tắt đi (false) để tái sử dụng ngay cho giao dịch tiếp theo mà không cần cấp phát lại vùng nhớ mới.
+
+\textbf{Tỉa nhánh sớm với đường dẫn đơn (Single Prefix-Path Early Stopping):}
+Đây là kỹ thuật tối ưu quan trọng nhất trong bước rút trích FP-growth. Khi đệ quy tiến sâu vào các cây FP-tree điều kiện, rất nhiều trường hợp cây thu hẹp lại thành một đường thẳng duy nhất (mỗi nút chỉ có tối đa 1 nút con). Thay vì tiếp tục gọi đệ quy một cách lãng phí để dựng cây vô nghĩa, thuật toán phát hiện và ngắt đệ quy sớm (early stopping). 
+Tại đây, nhóm sử dụng các toán tử thao tác bit (Bitwise operators như dịch trái \texttt{<<} và AND \texttt{\&}) để sinh nhanh toàn bộ $2^n - 1$ tổ hợp từ $n$ nút trên đường dẫn đơn này. Kỹ thuật này lược bỏ hoàn toàn chi phí tạo cấu trúc dữ liệu mới, đẩy kết quả trực tiếp vào mảng đích, đặc biệt phát huy tác dụng trên các tập dữ liệu có itemset dài như \textit{chess} hoặc \textit{mushroom}.
 
 \subsection{Kiểm thử và kết quả đối chiếu với SPMF}
 

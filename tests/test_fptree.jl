@@ -40,7 +40,7 @@ end
 end
 
 @testset "FP-tree bước 2: fptree_construction ($name)" for (name, build_tree) in [
-    ("Original", (db, minsup) -> fptree_construction(db, minsup)),
+    ("Original", (db, minsup) -> fptree_construction(FPTree, db, minsup)),
     ("Optimized", (db, minsup) -> fptree_construction(OptFPTree, db, minsup))
 ]
     tree = build_tree(HAN_DB, 3)
