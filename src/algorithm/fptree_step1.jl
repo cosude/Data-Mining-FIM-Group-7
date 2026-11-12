@@ -5,10 +5,12 @@
 
 Quét CSDL lần thứ nhất: đếm support của từng item.
 """
-function count_supports(DB::Vector{Vector{T}}) where T
+function count_supports(DB::Vector{Vector{T}}, weights::Vector{Int}=ones(Int, length(DB))) where T
     support = Dict{T,Int}()
-    for Trans in DB, item in Trans
-        support[item] = get(support, item, 0) + 1
+    for (Trans, w) in zip(DB, weights)
+        for item in Trans
+            support[item] = get(support, item, 0) + w
+        end
     end
     return support
 end
@@ -26,12 +28,13 @@ function build_flist(support::Dict{T,Int}, ξ::Int) where T
 end
 
 """
-    build_header_table(FList) -> Dict{T,HeaderTableEntry{T}}
+    build_header_table(FList, support) -> Dict{T,HeaderTableEntry{T}}
 
-Tạo header table rỗng, mỗi frequent item một entry; node-link được nối ở bước 2.
+Tạo header table, mỗi frequent item một entry kèm support của nó (dùng ở dòng (10)
+của Algorithm 2); node-link được nối ở bước 2.
 """
-function build_header_table(FList::Vector{T}) where T
-    return Dict{T,HeaderTableEntry{T}}(item => HeaderTableEntry{T}(item) for item in FList)
+function build_header_table(FList::Vector{T}, support::Dict{T, Int}) where T
+    return Dict{T,HeaderTableEntry{T}}(item => HeaderTableEntry{T}(item, support[item]) for item in FList)
 end
 
 # Optimized build_header_table

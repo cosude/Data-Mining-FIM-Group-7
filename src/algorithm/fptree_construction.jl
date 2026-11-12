@@ -1,25 +1,24 @@
-function fptree_construction(DB::Vector{Vector{T}}, ξ::Int) where T
+function fptree_construction(DB::Vector{Vector{T}}, ξ::Int, weights::Vector{Int}=ones(Int, length(DB))) where T
     # 1. Scan the transaction database DB once. Collect F, the set of frequent items, and the
     # support of each frequent item. Sort F in support-descending order as FList, the list of
     # frequent items
-    support = count_supports(DB)
+    support = count_supports(DB, weights)
     FList = build_flist(support, ξ)
-    header_table = build_header_table(FList)
+    header_table = build_header_table(FList, support)
 
-    # 2. Create the root of an FP-tree, T , and label it as “null”. 
-    tree = FPTree{T}(header_table)
+    # 2. Create the root of an FP-tree, T , and label it as “null”.
+    tree = FPTree{T}(header_table, FList)
     T_node = tree.root
     
     # For each transaction Trans in DB do the following.
-    for Trans in DB
+    for (Trans, w) in zip(DB, weights)
         # Select the frequent items in Trans and sort them according to the order of FList. Let the
         # sorted frequent-item list in Trans be [p | P], where p is the first element and P is the
         # remaining list.
         sorted_frequent_items = filter_and_sort(Trans, FList)
-        
         if !isempty(sorted_frequent_items)
             # Call insert_tree([p | P], T)
-            insert_tree!(tree, sorted_frequent_items, T_node)
+            insert_tree!(tree, sorted_frequent_items, T_node, w)
         end
     end
 
@@ -27,7 +26,7 @@ function fptree_construction(DB::Vector{Vector{T}}, ξ::Int) where T
 end
 
 # The function insert_tree([p | P], T) is performed as follows.
-function insert_tree!(tree::FPTree{ItemType}, p_P::AbstractVector{ItemType}, T_node::FPNode{ItemType}) where ItemType
+function insert_tree!(tree::FPTree{ItemType}, p_P::AbstractVector{ItemType}, T_node::FPNode{ItemType}, weight::Int=1) where ItemType
     # p is the first element and P is the remaining list
     p = p_P[1] 
     
@@ -35,11 +34,11 @@ function insert_tree!(tree::FPTree{ItemType}, p_P::AbstractVector{ItemType}, T_n
     if haskey(T_node.children, p)
         N = T_node.children[p]
         # then increment N's count by 1
-        N.count += 1
+        N.count += weight # Default weight is 1
     else
         # else create a new node N, with its count initialized to 1, 
         # its parent link linked to T
-        N = FPNode{ItemType}(p, 1, T_node)
+        N = FPNode{ItemType}(p, weight, T_node)
         T_node.children[p] = N # Add to T's children
         
         # and its node-link linked to the nodes with the same item-name 
@@ -48,19 +47,16 @@ function insert_tree!(tree::FPTree{ItemType}, p_P::AbstractVector{ItemType}, T_n
         if entry.header_of_node_link === nothing
             entry.header_of_node_link = N
         else
-            # Traverse to the end of the node-link chain to link the new node
-            current_link = entry.header_of_node_link
-            while current_link.node_link !== nothing
-                current_link = current_link.node_link
-            end
-            current_link.node_link = N
+            # Link the new node to the end of the node-link chain (kept by tail_of_node_link)
+            entry.tail_of_node_link.node_link = N
         end
+        entry.tail_of_node_link = N
     end
     
     # If P is nonempty, call insert_tree(P, N) recursively.
     if length(p_P) > 1
-        P = p_P[2:end] # P is the remaining list
-        insert_tree!(tree, P, N)
+        P = @view p_P[2:end] # P is the remaining list, use @view to avoid copying
+        insert_tree!(tree, P, N, weight)
     end
 end
 
