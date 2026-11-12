@@ -72,10 +72,9 @@ end
             # Basic implementation
         try
             db = read_spmf(db_path)
-            min_count = minsup_to_count(minsup, length(db))
+            ξ = minsup_to_count(minsup, length(db))
             
-            tree = fptree_construction(FPTree, db, min_count)
-            itemsets = mine_fpgrowth(tree, min_count)
+            itemsets = fpgrowth(FPTree, db, ξ)
             
             write_spmf(my_out, itemsets)
         catch e
@@ -89,10 +88,9 @@ end
             # Optimized implementation
         try
             db = read_spmf(db_path)
-            min_count = minsup_to_count(minsup, length(db))
+            ξ = minsup_to_count(minsup, length(db))
             
-            tree = fptree_construction(OptFPTree, db, min_count)
-            itemsets = mine_fpgrowth(tree, min_count)
+            itemsets = fpgrowth(OptFPTree, db, ξ)
             
             write_spmf(my_opt_out, itemsets)
         catch e
@@ -125,7 +123,7 @@ end
         
         expected_len = length(spmf_results)
         actual_len = length(my_results)
-        actual_opt_len = length(my_opt)
+        actual_opt_len = length(my_opt_results)
         
         println(" - SPMF generated:  $expected_len itemsets")
         println(" - Group generated: $actual_len itemsets")

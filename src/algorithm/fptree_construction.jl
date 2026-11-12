@@ -1,4 +1,4 @@
-function fptree_construction(DB::Vector{Vector{T}}, ξ::Int, weights::Vector{Int}=ones(Int, length(DB))) where T
+function fptree_construction(::Type{FPTree}, DB::Vector{Vector{T}}, ξ::Int, weights::Vector{Int}=ones(Int, length(DB))) where T
     # 1. Scan the transaction database DB once. Collect F, the set of frequent items, and the
     # support of each frequent item. Sort F in support-descending order as FList, the list of
     # frequent items
@@ -61,8 +61,13 @@ function insert_tree!(tree::FPTree{ItemType}, p_P::AbstractVector{ItemType}, T_n
 end
 
 # Optimized version
-function fptree_construction(::Type{OptFPTree}, DB::Vector{Vector{Int}}, ξ::Int)
-    support = count_supports(DB)
+function fptree_construction(
+    ::Type{OptFPTree}, 
+    DB::Vector{Vector{Int}}, 
+    ξ::Int, 
+    weights::Vector{Int}=ones(Int, length(DB))
+)
+    support = count_supports(DB, weights) 
     FList = build_flist(support, ξ)
     header_table = build_opt_header_table(FList, support)
     tree = OptFPTree{Int}(header_table)
@@ -70,7 +75,7 @@ function fptree_construction(::Type{OptFPTree}, DB::Vector{Vector{Int}}, ξ::Int
     max_item = isempty(FList) ? 0 : maximum(FList)
     in_trans = falses(max_item) # BitArray
 
-    for Trans in DB
+    for (Trans, w) in zip(DB, weights)
         for item in Trans
             if item <= max_item && haskey(header_table, item)
                 in_trans[item] = true
@@ -86,7 +91,7 @@ function fptree_construction(::Type{OptFPTree}, DB::Vector{Vector{Int}}, ξ::Int
         end
         
         if !isempty(sorted_frequent_items)
-            insert_tree!(tree, sorted_frequent_items)
+            insert_tree!(tree, sorted_frequent_items, w) 
         end
         
         for item in Trans
@@ -98,14 +103,14 @@ function fptree_construction(::Type{OptFPTree}, DB::Vector{Vector{Int}}, ξ::Int
     return tree
 end
 
-function insert_tree!(tree::OptFPTree{Int}, items::AbstractVector{Int})
+function insert_tree!(tree::OptFPTree{Int}, items::AbstractVector{Int}, weight::Int=1)
     current_node = tree.root
     for item in items
         if haskey(current_node.children, item)
             current_node = current_node.children[item]
-            current_node.count += 1
+            current_node.count += weight
         else
-            new_node = OptFPNode{Int}(item, 1, current_node)
+            new_node = OptFPNode{Int}(item, weight, current_node)
             current_node.children[item] = new_node
             
             push!(tree.header_table[item].nodes, new_node)

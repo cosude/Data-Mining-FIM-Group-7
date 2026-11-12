@@ -15,28 +15,23 @@ using .FPGrowth
         @test_skip false
     else
         db = read_spmf(db_path)
-        min_count = minsup_to_count(minsup, length(db))
+        ξ = minsup_to_count(minsup, length(db))
         
         println("\n" * "="^50)
         println("BENCHMARKING: $dataset_name (minsup = $minsup)")
         println("="^50)
         
-        _ = mine_fpgrowth(fptree_construction(FPTree, db, min_count), min_count)
-        _ = mine_fpgrowth(fptree_construction(OptFPTree, db, min_count), min_count)
+        # Warm up
+        _ = fpgrowth(FPTree, db, ξ)
+        _ = fpgrowth(OptFPTree, db, ξ)
         
-        # Base implementation
+        # Basic implementation
         GC.gc()
-        stats_base = @timed begin
-            tree_base = fptree_construction(FPTree, db, min_count)
-            mine_fpgrowth(tree_base, min_count)
-        end
+        stats_base = @timed fpgrowth(FPTree, db, ξ)
         
         # Optimized implementation
         GC.gc()
-        stats_opt = @timed begin
-            tree_opt = fptree_construction(OptFPTree, db, min_count)
-            mine_fpgrowth(tree_opt, min_count)
-        end
+        stats_opt = @timed fpgrowth(OptFPTree, db, ξ)
         
         # Report
         base_mem = stats_base.bytes / (1024^2)
