@@ -1,0 +1,6 @@
+Dataset,Minsup,SPMF_Count,Group_Base_Count,Exact_Matches,Match_Ratio(%)
+chess,0.8,8227,8227,8227,100.0
+mushroom,0.4,505,505,505,100.0
+retail,0.05,16,16,16,100.0
+T10I4D100K,0.01,385,385,385,100.0
+accidents,0.6,2074,2074,2074,100.0

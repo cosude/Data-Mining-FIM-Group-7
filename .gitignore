@@ -1,4 +1,7 @@
-data/
+data/benchmark
+data/my_opt_outputs
+data/my_outputs
+data/spmf_outputs
 *.cov
 .vscode/
 *.aux
