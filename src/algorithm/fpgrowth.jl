@@ -1,10 +1,10 @@
 # Dispatch
 function fpgrowth(
     ::Type{TreeType}, 
-    DB::Vector{Vector{T}}, 
+    DB::Vector{Vector{Int}}, 
     ξ::Int, 
     weights::Vector{Int}=ones(Int, length(DB))
-) where {TreeType, T}
+) where TreeType
     tree = fptree_construction(TreeType, DB, ξ, weights)
     return fpgrowth(tree, ξ)
 end
@@ -21,8 +21,8 @@ Example 3). `R` là node mà phần multipath Q treo bên dưới, đóng vai tr
 - Cây chỉ gồm một đường đơn: `P` là cả đường, `R` là node lá (không có con, nên Q rỗng).
 - Root có > 1 con: `P` rỗng, `R` là root (Q chính là cả cây, dòng (8)).
 """
-function single_prefix_path(tree::FPTree{T}) where T
-    P = FPNode{T}[]
+function single_prefix_path(tree::FPTree)
+    P = FPNode[]
     R = tree.root
     while length(R.children) == 1
         R = first(values(R.children))
@@ -38,12 +38,12 @@ Dòng (5)-(6): sinh mọi tổ hợp con khác rỗng β của các node trên �
 với support = support nhỏ nhất của các node trong β (Lemma 3.2).
 """
 function generate_combinations!(
-    out::Vector{Tuple{Vector{T}, Int}},
-    P::Vector{FPNode{T}},
+    out::Vector{Tuple{Vector{Int}, Int}},
+    P::Vector{FPNode},
     idx::Int,
-    current_items::Vector{T},
+    current_items::Vector{Int},
     current_min_sup::Int
-) where T
+)
     if idx > length(P)
         isempty(current_items) || push!(out, (copy(current_items), current_min_sup))
         return
@@ -54,7 +54,7 @@ function generate_combinations!(
 
     # Lấy node thứ idx
     node = P[idx]
-    push!(current_items, node.item_name::T)
+    push!(current_items, node.item_name::Int)
     generate_combinations!(out, P, idx + 1, current_items, min(current_min_sup, node.count))
     pop!(current_items) # quay lui
 end
@@ -66,15 +66,15 @@ Dòng (11), Property 3.2: lần theo node-link của `item`; với mỗi node, �
 lên tới `R` (root, hoặc pseudo-root của phần multipath Q) để lấy prefix path. Mỗi prefix
 path mang count của node `item` tương ứng (transformed prefix path).
 """
-function build_conditional_pattern_base(tree::FPTree{T}, item::T, R::FPNode{T}=tree.root) where T
-    paths = Vector{T}[]
+function build_conditional_pattern_base(tree::FPTree, item::Int, R::FPNode=tree.root)
+    paths = Vector{Int}[]
     weights = Int[]
 
     for node in nodelinks(tree, item)
-        path = T[]
+        path = Int[]
         curr = node.parent
         while curr !== R
-            push!(path, curr.item_name::T)
+            push!(path, curr.item_name::Int)
             curr = curr.parent
         end
 
@@ -89,25 +89,25 @@ function build_conditional_pattern_base(tree::FPTree{T}, item::T, R::FPNode{T}=t
 end
 
 """
-    fpgrowth(tree::FPTree{T}, ξ::Int) -> Vector{Tuple{Vector{T}, Int}}
+    fpgrowth(tree::FPTree, ξ::Int) -> Vector{Tuple{Vector{Int}, Int}}
     
 Algorithm 2: khai thác toàn bộ tập phổ biến từ `tree` (hoặc trực tiếp từ `DB`) với ngưỡng
 support tuyệt đối `ξ`, bằng cách gọi FP-growth(FP-tree, null). Trả về các cặp
 `(itemset, support)`; item trong itemset không được sắp theo thứ tự nào.
 """
-function fpgrowth(tree::FPTree{T}, ξ::Int) where T
-    patterns = Tuple{Vector{T}, Int}[]
-    isempty(tree.root.children) || _fpgrowth!(patterns, tree, T[], ξ)
+function fpgrowth(tree::FPTree, ξ::Int)
+    patterns = Tuple{Vector{Int}, Int}[]
+    isempty(tree.root.children) || _fpgrowth!(patterns, tree, Int[], ξ)
     return patterns
 end
 
 # Procedure FP-growth(Tree, α). Các pattern sinh ra được ghi thêm vào `patterns`.
 function _fpgrowth!(
-    patterns::Vector{Tuple{Vector{T}, Int}},
-    tree::FPTree{T},
-    α::Vector{T},
+    patterns::Vector{Tuple{Vector{Int}, Int}},
+    tree::FPTree,
+    α::Vector{Int},
     ξ::Int
-) where T
+)
     # (1)-(4) if Tree contains a single prefix path: P là single prefix-path,
     # Q là phần multipath bên dưới R (top branching node được thay bằng null root).
     # (8) else Q là cả Tree: khi đó P rỗng, R là root.
@@ -115,21 +115,21 @@ function _fpgrowth!(
 
     # (5)-(7) freq_pattern_set(P): mọi tổ hợp β của các node trên P,
     # support = min support của các node trong β. α được ghép vào ở dòng (15).
-    freq_P = Tuple{Vector{T}, Int}[]
-    generate_combinations!(freq_P, P, 1, T[], typemax(Int))
+    freq_P = Tuple{Vector{Int}, Int}[]
+    generate_combinations!(freq_P, P, 1, Int[], typemax(Int))
 
     # (9)-(14) freq_pattern_set(Q). Khi P rỗng thì kết quả cuối chính là freq_pattern_set(Q),
     # nên ghi thẳng vào `patterns` để khỏi sao chép.
-    freq_Q = isempty(P) ? patterns : Tuple{Vector{T}, Int}[]
+    freq_Q = isempty(P) ? patterns : Tuple{Vector{Int}, Int}[]
     if !isempty(R.children)
         # Item thuộc P chỉ xuất hiện một lần trong cây, trên P (Lemma 3.3), nên các item
         # còn lại của FList chính là các item của Q, và mọi node của chúng nằm dưới R.
-        items_P = Set{T}(node.item_name::T for node in P)
+        items_P = Set{Int}(node.item_name::Int for node in P)
         for ai in Iterators.reverse(tree.flist) # từ đáy header table lên, như Example 2
             ai in items_P && continue
 
             # (10) generate pattern β = aᵢ ∪ α with support = aᵢ.support
-            β = vcat(T[ai], α)
+            β = vcat(Int[ai], α)
             push!(freq_Q, (β, tree.header_table[ai].support))
 
             # (11) construct β's conditional pattern-base, then β's conditional FP-tree Tree_β
@@ -156,14 +156,14 @@ function _fpgrowth!(
 end
 
 # Optimized version
-function fpgrowth(tree::OptFPTree{Int}, minsup::Int)
+function fpgrowth(tree::OptFPTree, minsup::Int)
     results = Tuple{Vector{Int}, Int}[]
     _fpgrowth_step!(tree, Int[], minsup, results)
     return results
 end
 
 function _fpgrowth_step!(
-    tree::OptFPTree{Int}, 
+    tree::OptFPTree, 
     α::Vector{Int}, 
     ξ::Int, 
     results::Vector{Tuple{Vector{Int}, Int}}
@@ -171,7 +171,7 @@ function _fpgrowth_step!(
     # Optimize by checking for single prefix path
     is_single_path = true
     current = tree.root
-    path_nodes = OptFPNode{Int}[]
+    path_nodes = OptFPNode[]
     
     while !isempty(current.children)
         # If the node has more than one child, its no longer a single path
@@ -251,7 +251,7 @@ function _fpgrowth_step!(
         
         # Initialize the conditional fptree
         cond_header = build_opt_header_table(freq_items, local_support)
-        cond_tree = OptFPTree{Int}(cond_header)
+        cond_tree = OptFPTree(cond_header)
         
         # Build the conditional fptree
         for (i, path) in enumerate(cond_pattern_base)
@@ -273,14 +273,14 @@ function _fpgrowth_step!(
     end
 end
 
-function _insert_cond_tree_iterative!(tree::OptFPTree{Int}, items::Vector{Int}, count::Int)
+function _insert_cond_tree_iterative!(tree::OptFPTree, items::Vector{Int}, count::Int)
     current_node = tree.root
     for item in items
         if haskey(current_node.children, item)
             current_node = current_node.children[item]
             current_node.count += count
         else
-            new_node = OptFPNode{Int}(item, count, current_node)
+            new_node = OptFPNode(item, count, current_node)
             current_node.children[item] = new_node
             
             push!(tree.header_table[item].nodes, new_node)

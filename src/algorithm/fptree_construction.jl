@@ -1,4 +1,4 @@
-function fptree_construction(::Type{FPTree}, DB::Vector{Vector{T}}, ξ::Int, weights::Vector{Int}=ones(Int, length(DB))) where T
+function fptree_construction(::Type{FPTree}, DB::Vector{Vector{Int}}, ξ::Int, weights::Vector{Int}=ones(Int, length(DB)))
     # 1. Scan the transaction database DB once. Collect F, the set of frequent items, and the
     # support of each frequent item. Sort F in support-descending order as FList, the list of
     # frequent items
@@ -7,7 +7,7 @@ function fptree_construction(::Type{FPTree}, DB::Vector{Vector{T}}, ξ::Int, wei
     header_table = build_header_table(FList, support)
 
     # 2. Create the root of an FP-tree, T , and label it as “null”.
-    tree = FPTree{T}(header_table, FList)
+    tree = FPTree(header_table, FList)
     T_node = tree.root
     
     # For each transaction Trans in DB do the following.
@@ -26,7 +26,7 @@ function fptree_construction(::Type{FPTree}, DB::Vector{Vector{T}}, ξ::Int, wei
 end
 
 # The function insert_tree([p | P], T) is performed as follows.
-function insert_tree!(tree::FPTree{ItemType}, p_P::AbstractVector{ItemType}, T_node::FPNode{ItemType}, weight::Int=1) where ItemType
+function insert_tree!(tree::FPTree, p_P::AbstractVector{Int}, T_node::FPNode, weight::Int=1)
     # p is the first element and P is the remaining list
     p = p_P[1] 
     
@@ -38,7 +38,7 @@ function insert_tree!(tree::FPTree{ItemType}, p_P::AbstractVector{ItemType}, T_n
     else
         # else create a new node N, with its count initialized to 1, 
         # its parent link linked to T
-        N = FPNode{ItemType}(p, weight, T_node)
+        N = FPNode(p, weight, T_node)
         T_node.children[p] = N # Add to T's children
         
         # and its node-link linked to the nodes with the same item-name 
@@ -70,7 +70,7 @@ function fptree_construction(
     support = count_supports(DB, weights) 
     FList = build_flist(support, ξ)
     header_table = build_opt_header_table(FList, support)
-    tree = OptFPTree{Int}(header_table)
+    tree = OptFPTree(header_table)
     
     max_item = isempty(FList) ? 0 : maximum(FList)
     in_trans = falses(max_item) # BitArray
@@ -103,14 +103,14 @@ function fptree_construction(
     return tree
 end
 
-function insert_tree!(tree::OptFPTree{Int}, items::AbstractVector{Int}, weight::Int=1)
+function insert_tree!(tree::OptFPTree, items::AbstractVector{Int}, weight::Int=1)
     current_node = tree.root
     for item in items
         if haskey(current_node.children, item)
             current_node = current_node.children[item]
             current_node.count += weight
         else
-            new_node = OptFPNode{Int}(item, weight, current_node)
+            new_node = OptFPNode(item, weight, current_node)
             current_node.children[item] = new_node
             
             push!(tree.header_table[item].nodes, new_node)

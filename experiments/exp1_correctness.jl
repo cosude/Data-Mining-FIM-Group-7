@@ -18,6 +18,48 @@ function parse_output_file(filepath::String)
     return result
 end
 
+function check_discrepancies(name::String, spmf_results::Dict, my_results::Dict)
+    spmf_count = length(spmf_results)
+    my_count = length(my_results)
+    
+    exact_matches = 0
+    for (itemset, sup) in my_results
+        if haskey(spmf_results, itemset) && spmf_results[itemset] == sup
+            exact_matches += 1
+        end
+    end
+    
+    match_ratio = spmf_count == 0 ? 100.0 : (exact_matches / spmf_count) * 100.0
+    
+    @printf " - %-4s Itemsets: %d | Exact Matches: %d | Ratio: %.2f%%\n" name my_count exact_matches match_ratio
+    
+    if match_ratio < 100.0 || my_count != spmf_count
+        println("   [!] DISCREPANCY DETECTED IN $name! Analyzing...")
+        
+        missing_in_my = setdiff(keys(spmf_results), keys(my_results))
+        if !isempty(missing_in_my)
+            println("     + Missing from Group's Output: ", length(missing_in_my), " itemsets.")
+        end
+        
+        extra_in_my = setdiff(keys(my_results), keys(spmf_results))
+        if !isempty(extra_in_my)
+            println("     + Extra in Group's Output: ", length(extra_in_my), " itemsets.")
+        end
+        
+        wrong_sup = 0
+        for k in intersect(keys(spmf_results), keys(my_results))
+            if spmf_results[k] != my_results[k]
+                wrong_sup += 1
+            end
+        end
+        if wrong_sup > 0
+            println("     + Itemsets with Wrong Support: ", wrong_sup, " itemsets.")
+        end
+    end
+    
+    return my_count, exact_matches, match_ratio
+end
+
 function run_correctness_experiment()
     datasets = [
         ("chess", 0.8),
@@ -34,11 +76,11 @@ function run_correctness_experiment()
     csv_path = joinpath(out_dir, "exp1_correctness.csv")
     
     open(csv_path, "w") do io
-        # CSV header row
-        println(io, "Dataset,Minsup,SPMF_Count,Group_Base_Count,Exact_Matches,Match_Ratio(%)")
+        # CSV header row updated for both implementations
+        println(io, "Dataset,Minsup,SPMF_Count,Base_Count,Base_Exact,Base_Ratio(%),Opt_Count,Opt_Exact,Opt_Ratio(%)")
         
         println("="^70)
-        println("EXPERIMENT 1: CORRECTNESS EVALUATION (BASE IMPLEMENTATION vs SPMF)")
+        println("EXPERIMENT 1: CORRECTNESS EVALUATION (BASE & OPT vs SPMF)")
         println("="^70)
 
         for (dataset_name, minsup) in datasets
@@ -46,10 +88,11 @@ function run_correctness_experiment()
             
             db_path = joinpath(@__DIR__, "..", "data", "benchmark", "$(dataset_name).txt")
             spmf_out = joinpath(@__DIR__, "..", "data", "spmf_outputs", "$(dataset_name)_out.txt")
-            my_out = joinpath(@__DIR__, "..", "data", "my_outputs", "$(dataset_name)_base_out.txt")
+            my_base_out = joinpath(@__DIR__, "..", "data", "my_outputs", "$(dataset_name)_base_out.txt")
+            my_opt_out = joinpath(@__DIR__, "..", "data", "my_outputs", "$(dataset_name)_opt_out.txt")
             
             mkpath(dirname(spmf_out))
-            mkpath(dirname(my_out))
+            mkpath(dirname(my_base_out))
 
             if !isfile(db_path)
                 println(" -> [SKIP] Database not found: $db_path")
@@ -64,70 +107,33 @@ function run_correctness_experiment()
                 continue
             end
 
-            # Run basic implementation
             db = read_spmf(db_path)
             min_count = minsup_to_count(minsup, length(db))
             
-            itemsets = fpgrowth(FPTree, db, min_count)
-            write_spmf(my_out, itemsets)
+            # Run Basic Implementation
+            itemsets_base = fpgrowth(FPTree, db, min_count)
+            write_spmf(my_base_out, itemsets_base)
 
-            # Checking results
+            # Run Optimized Implementation
+            itemsets_opt = fpgrowth(OptFPTree, db, min_count)
+            write_spmf(my_opt_out, itemsets_opt)
+
+            # Parse results
             spmf_results = parse_output_file(spmf_out)
-            my_results = parse_output_file(my_out)
+            base_results = parse_output_file(my_base_out)
+            opt_results = parse_output_file(my_opt_out)
             
             spmf_count = length(spmf_results)
-            my_count = length(my_results)
+            @printf " - SPMF Itemsets: %d\n" spmf_count
+
+            # Check Basic
+            base_count, base_exact, base_ratio = check_discrepancies("BASE", spmf_results, base_results)
             
-            exact_matches = 0
-            mismatches = 0
-            
-            for (itemset, sup) in my_results
-                if haskey(spmf_results, itemset) && spmf_results[itemset] == sup
-                    exact_matches += 1
-                else
-                    mismatches += 1
-                end
-            end
-            
-            # Calculate matching percentage
-            match_ratio = spmf_count == 0 ? 100.0 : (exact_matches / spmf_count) * 100.0
+            # Check Optimized
+            opt_count, opt_exact, opt_ratio = check_discrepancies("OPT ", spmf_results, opt_results)
             
             # Write to CSV
-            println(io, "$dataset_name,$minsup,$spmf_count,$my_count,$exact_matches,$match_ratio")
-            
-            # Logging
-            @printf " - SPMF Itemsets : %d\n" spmf_count
-            @printf " - Group Itemsets: %d\n" my_count
-            @printf " - Exact Matches : %d\n" exact_matches
-            @printf " -> MATCH RATIO  : %.2f%%\n" match_ratio
-            
-            # Tracing mismatches
-            if match_ratio < 100.0 || my_count != spmf_count
-                println(" [!] DISCREPANCY DETECTED! Analyzing missing/extra itemsets...")
-                
-                # Finding frequent itemsets basic implementation did not produce
-                missing_in_my = setdiff(keys(spmf_results), keys(my_results))
-                if !isempty(missing_in_my)
-                    println("     + Missing from Group's Output: ", length(missing_in_my), " itemsets.")
-                end
-                
-                # Finding non-frequent itemsets basic implementation produced
-                extra_in_my = setdiff(keys(my_results), keys(spmf_results))
-                if !isempty(extra_in_my)
-                    println("     + Extra in Group's Output: ", length(extra_in_my), " itemsets.")
-                end
-                
-                # Finding matched frequent itemsets but mismatched support count
-                wrong_sup = 0
-                for k in intersect(keys(spmf_results), keys(my_results))
-                    if spmf_results[k] != my_results[k]
-                        wrong_sup += 1
-                    end
-                end
-                if wrong_sup > 0
-                    println("     + Itemsets with Wrong Support: ", wrong_sup, " itemsets.")
-                end
-            end
+            println(io, "$dataset_name,$minsup,$spmf_count,$base_count,$base_exact,$base_ratio,$opt_count,$opt_exact,$opt_ratio")
         end
     end
     println("\n" * "="^70)

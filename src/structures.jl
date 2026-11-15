@@ -1,70 +1,69 @@
-abstract type AbstractFPTree{T} end
+abstract type AbstractFPTree end
 
-mutable struct FPNode{T}
-    item_name::Union{T, Nothing}
+mutable struct FPNode
+    item_name::Union{Int, Nothing}
     count::Int
-    node_link::Union{FPNode{T}, Nothing}
-    parent::Union{FPNode{T}, Nothing}
-    children::Dict{T, FPNode{T}}
+    node_link::Union{FPNode, Nothing}
+    parent::Union{FPNode, Nothing}
+    children::Dict{Int, FPNode}
 
-    function FPNode{T}(item_name::Union{T, Nothing}, count::Int, parent::Union{FPNode{T}, Nothing}=nothing) where T
-        new{T}(item_name, count, nothing, parent, Dict{T, FPNode{T}}())
+    function FPNode(item_name::Union{Int, Nothing}, count::Int, parent::Union{FPNode, Nothing}=nothing)
+        new(item_name, count, nothing, parent, Dict{Int, FPNode}())
     end
 end
 
-mutable struct HeaderTableEntry{T}
-    item_name::T
+mutable struct HeaderTableEntry
+    item_name::Int
     support::Int
-    header_of_node_link::Union{FPNode{T}, Nothing}
-    tail_of_node_link::Union{FPNode{T}, Nothing} # last node of the chain, for O(1) append
+    header_of_node_link::Union{FPNode, Nothing}
+    tail_of_node_link::Union{FPNode, Nothing}
 
-    function HeaderTableEntry{T}(item_name::T, support::Int=0) where T
-        new{T}(item_name, support, nothing, nothing)
+    function HeaderTableEntry(item_name::Int, support::Int=0)
+        new(item_name, support, nothing, nothing)
     end
 end
 
-struct FPTree{T} <: AbstractFPTree{T}
-    root::FPNode{T}
-    header_table::Dict{T, HeaderTableEntry{T}}
-    flist::Vector{T} # frequent items sorted by descending support
+struct FPTree <: AbstractFPTree
+    root::FPNode
+    header_table::Dict{Int, HeaderTableEntry}
+    flist::Vector{Int}
 
-    function FPTree{T}(header_table::Dict{T, HeaderTableEntry{T}}, flist::Vector{T}) where T
-        root_node = FPNode{T}(nothing, 0)
-        new{T}(root_node, header_table, flist)
+    function FPTree(header_table::Dict{Int, HeaderTableEntry}, flist::Vector{Int})
+        root_node = FPNode(nothing, 0)
+        new(root_node, header_table, flist)
     end
 end
 
 # Optimized version
 
 # FPNode removed node_link
-mutable struct OptFPNode{T}
-    item_name::Union{T, Nothing}
+mutable struct OptFPNode
+    item_name::Union{Int, Nothing}
     count::Int
-    parent::Union{OptFPNode{T}, Nothing}
-    children::Dict{T, OptFPNode{T}}
+    parent::Union{OptFPNode, Nothing}
+    children::Dict{Int, OptFPNode}
 
-    function OptFPNode{T}(item_name::Union{T, Nothing}, count::Int, parent::Union{OptFPNode{T}, Nothing}=nothing) where T
-        new{T}(item_name, count, parent, Dict{T, OptFPNode{T}}())
+    function OptFPNode(item_name::Union{Int, Nothing}, count::Int, parent::Union{OptFPNode, Nothing}=nothing)
+        new(item_name, count, parent, Dict{Int, OptFPNode}())
     end
 end
 
-# HeaderTableEntry references nodes using a vector => O(1) look up for paths
-mutable struct OptHeaderTableEntry{T}
-    item_name::T
+mutable struct OptHeaderTableEntry
+    item_name::Int
     support::Int
-    nodes::Vector{OptFPNode{T}}
+    nodes::Vector{OptFPNode}
     
-    function OptHeaderTableEntry{T}(item_name::T, support::Int=0) where T
-        new{T}(item_name, support, OptFPNode{T}[])
+    function OptHeaderTableEntry(item_name::Int, support::Int=0)
+        new(item_name, support, OptFPNode[])
     end
 end
 
-struct OptFPTree{T} <: AbstractFPTree{T}
-    root::OptFPNode{T}
-    header_table::Dict{T, OptHeaderTableEntry{T}}
+struct OptFPTree <: AbstractFPTree
+    root::OptFPNode
+    header_table::Dict{Int, OptHeaderTableEntry}
 
-    function OptFPTree{T}(header_table::Dict{T, OptHeaderTableEntry{T}}) where T
-        root_node = OptFPNode{T}(nothing, 0)
-        new{T}(root_node, header_table)
+    function OptFPTree(header_table::Dict{Int, OptHeaderTableEntry})
+        root_node = OptFPNode(nothing, 0)
+        new(root_node, header_table)
     end
 end

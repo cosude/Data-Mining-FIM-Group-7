@@ -5,4 +5,5 @@ include(joinpath(@__DIR__, "..", "src", "FPGrowth.jl"))
     include("test_io.jl")
     include("test_fptree.jl")
     include("test_correctness.jl")
+    include("test_opt_vs_basic.jl")
 end

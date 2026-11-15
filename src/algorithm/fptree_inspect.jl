@@ -1,7 +1,7 @@
 # Mọi node của `item`, đi theo chuỗi node-link từ header table.
 # 1. Phiên bản cho FPTree gốc (duyệt linked list)
-function nodelinks(tree::FPTree{T}, item::T) where T
-    nodes = FPNode{T}[]
+function nodelinks(tree::FPTree, item::Int)
+    nodes = FPNode[]
     haskey(tree.header_table, item) || return nodes
     node = tree.header_table[item].header_of_node_link
     while node !== nothing
@@ -12,8 +12,8 @@ function nodelinks(tree::FPTree{T}, item::T) where T
 end
 
 # 2. Phiên bản cho OptFPTree tối ưu (trả về trực tiếp mảng nodes đã lưu, O(1))
-function nodelinks(tree::OptFPTree{T}, item::T) where T
-    haskey(tree.header_table, item) || return OptFPNode{T}[]
+function nodelinks(tree::OptFPTree, item::Int)
+    haskey(tree.header_table, item) || return OptFPNode[]
     return tree.header_table[item].nodes
 end
 

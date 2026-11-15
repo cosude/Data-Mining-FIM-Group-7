@@ -1,10 +1,12 @@
 using Printf
+using CSV
+using DataFrames
 
 isdefined(Main, :FPGrowth) || include(joinpath(@__DIR__, "..", "src", "FPGrowth.jl"))
 using .FPGrowth
 
 function run_runtime_experiment()
-    # Define 5-7 minsup for each benchmark in decreasing order
+    # Define minsup for each benchmark in decreasing order
     experiment_configs = [
         ("chess", [0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6]),
         ("mushroom", [0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2]),
@@ -20,11 +22,11 @@ function run_runtime_experiment()
     csv_path = joinpath(out_dir, "exp2_runtime.csv")
     
     open(csv_path, "w") do io
-        println(io, "Dataset,Minsup,SPMF_Time_s,Base_Time_s")
+        println(io, "Dataset,Minsup,SPMF_Time_s,Base_Time_s,Opt_Time_s")
         
-        println("="^75)
-        println("EXPERIMENT 2: RUNTIME VS MINSUP (SPMF vs BASE)")
-        println("="^75)
+        println("="^85)
+        println("EXPERIMENT 2: RUNTIME VS MINSUP (SPMF vs BASE vs OPT)")
+        println("="^85)
 
         print("Warming up JIT compiler... ")
         dummy_db = [[1, 2], [1, 2, 3], [2, 3]]
@@ -33,7 +35,7 @@ function run_runtime_experiment()
         println("Done!\n")
 
         for (dataset_name, minsups) in experiment_configs
-            println("-"^75)
+            println("-"^85)
             println("Dataset: $dataset_name")
             
             db_path = joinpath(@__DIR__, "..", "data", "benchmark", "$(dataset_name).txt")
@@ -48,7 +50,7 @@ function run_runtime_experiment()
                 @printf " Minsup = %5.3f | " minsup
                 min_count = minsup_to_count(minsup, length(db))
                 
-                # Measure runtime
+                # Measure SPMF runtime
                 spmf_out = tempname()
                 time_spmf = @elapsed begin
                     try
@@ -58,17 +60,21 @@ function run_runtime_experiment()
                     end
                 end
                 
-                # Measure basic implementation runtime
+                # Measure Base runtime
                 GC.gc()
                 time_base = @elapsed fpgrowth(FPTree, db, min_count)
+
+                # Measure Opt runtime
+                GC.gc()
+                time_opt = @elapsed fpgrowth(OptFPTree, db, min_count)
                 
-                @printf "SPMF: %7.3fs | Base: %7.3fs" time_spmf time_base
+                @printf "SPMF: %7.3fs | Base: %7.3fs | Opt: %7.3fs\n" time_spmf time_base time_opt
                 
-                println(io, "$dataset_name,$minsup,$time_spmf,$time_base")
+                println(io, "$dataset_name,$minsup,$time_spmf,$time_base,$time_opt")
             end
         end
     end
-    println("="^75)
+    println("="^85)
     println("Report saved to: $csv_path")
 end
 
