@@ -11,7 +11,7 @@ const DATASETS = Dict(
 )
 
 # Navigate from scripts/ up to the root, then into data/benchmark/
-out_dir = joinpath(@__DIR__, "..", "data", "benchmark")
+out_dir = joinpath(@__DIR__, "data", "benchmark")
 mkpath(out_dir)
 
 for (filename, url) in DATASETS

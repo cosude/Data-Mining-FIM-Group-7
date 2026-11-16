@@ -14,3 +14,4 @@ data/spmf_outputs
 *.toc
 *.bbl
 *.blg
+venv

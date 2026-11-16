@@ -1,11 +1,8 @@
 using Printf
-using CSV
-using DataFrames
 
-isdefined(Main, :FPGrowth) || include(joinpath(@__DIR__, "..", "src", "FPGrowth.jl"))
-using .FPGrowth
+include(joinpath(@__DIR__, "exp_common.jl"))
 
-function run_runtime_experiment()
+function run_runtime_experiment(; reps = 3)
     # Define minsup for each benchmark in decreasing order
     experiment_configs = [
         ("chess", [0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6]),
@@ -15,30 +12,26 @@ function run_runtime_experiment()
         ("accidents", [0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5])
     ]
     
-    spmf_jar = joinpath(@__DIR__, "..", "tools", "spmf.jar")
-    out_dir = joinpath(@__DIR__, "..", "data", "results", "exp2_runtime_vs_minsup")
-    mkpath(out_dir)
-    
+    out_dir = results_dir("exp2_runtime_vs_minsup")
     csv_path = joinpath(out_dir, "exp2_runtime.csv")
+    use_spmf = spmf_available()
     
+    println("="^85)
+    println("EXPERIMENT 2: RUNTIME VS MINSUP (SPMF vs BASE vs OPT)")
+    println("="^85)
+
+    print("Warming up JIT compiler... ")
+    warmup()
+    println("Done!\n")
+
     open(csv_path, "w") do io
         println(io, "Dataset,Minsup,SPMF_Time_s,Base_Time_s,Opt_Time_s")
         
-        println("="^85)
-        println("EXPERIMENT 2: RUNTIME VS MINSUP (SPMF vs BASE vs OPT)")
-        println("="^85)
-
-        print("Warming up JIT compiler... ")
-        dummy_db = [[1, 2], [1, 2, 3], [2, 3]]
-        fpgrowth(FPTree, dummy_db, 1)
-        fpgrowth(OptFPTree, dummy_db, 1)
-        println("Done!\n")
-
         for (dataset_name, minsups) in experiment_configs
             println("-"^85)
             println("Dataset: $dataset_name")
             
-            db_path = joinpath(@__DIR__, "..", "data", "benchmark", "$(dataset_name).txt")
+            db_path = benchmark_path(dataset_name)
             if !isfile(db_path)
                 println(" -> [SKIP] Database not found: $db_path")
                 continue
@@ -51,26 +44,17 @@ function run_runtime_experiment()
                 min_count = minsup_to_count(minsup, length(db))
                 
                 # Measure SPMF runtime
-                spmf_out = tempname()
-                time_spmf = @elapsed begin
-                    try
-                        run(pipeline(`java -jar "$spmf_jar" run FPGrowth_itemsets "$db_path" "$spmf_out" $minsup`, stdout=devnull, stderr=devnull))
-                    catch
-                        println("SPMF Error")
-                    end
-                end
+                t_spmf = use_spmf ? median(run_spmf(db_path, minsup)[1] for _ in 1:reps) : NaN
                 
                 # Measure Base runtime
-                GC.gc()
-                time_base = @elapsed fpgrowth(FPTree, db, min_count)
+                t_base, _ = median_time(() -> fpgrowth(FPTree, db, min_count), reps)
 
                 # Measure Opt runtime
-                GC.gc()
-                time_opt = @elapsed fpgrowth(OptFPTree, db, min_count)
+                t_opt, _ = median_time(() -> fpgrowth(OptFPTree, db, min_count), reps)
                 
-                @printf "SPMF: %7.3fs | Base: %7.3fs | Opt: %7.3fs\n" time_spmf time_base time_opt
+                @printf "SPMF: %7.3fs | Base: %7.3fs | Opt: %7.3fs\n" t_spmf t_base t_opt
                 
-                println(io, "$dataset_name,$minsup,$time_spmf,$time_base,$time_opt")
+                println(io, join((dataset_name, minsup, t_spmf, t_base, t_opt), ','))
             end
         end
     end

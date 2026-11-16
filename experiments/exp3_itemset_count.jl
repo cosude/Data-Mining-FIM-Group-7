@@ -1,7 +1,5 @@
 using Printf
-
-isdefined(Main, :FPGrowth) || include(joinpath(@__DIR__, "..", "src", "FPGrowth.jl"))
-using .FPGrowth
+include(joinpath(@__DIR__, "exp_common.jl"))
 
 function run_itemset_count_experiment()
     experiment_configs = [
@@ -12,22 +10,21 @@ function run_itemset_count_experiment()
         ("T10I4D100K",  [0.05, 0.04, 0.03, 0.02, 0.01, 0.005])    # Sparse
     ]
     
-    out_dir = joinpath(@__DIR__, "..", "data", "results", "exp3_itemset_count")
-    mkpath(out_dir)
+    out_dir = results_dir("exp3_itemset_count")
     csv_path = joinpath(out_dir, "exp3_itemset_counts.csv")
     
+    println("="^60)
+    println("EXPERIMENT 3: FREQUENT ITEMSET COUNT VS MINSUP")
+    println("="^60)
+
     open(csv_path, "w") do io
         println(io, "Dataset,Type,Minsup,Itemset_Count")
         
-        println("="^60)
-        println("EXPERIMENT 3: FREQUENT ITEMSET COUNT VS MINSUP")
-        println("="^60)
-
         for (dataset_name, minsups) in experiment_configs
             ds_type = dataset_name in ["chess", "mushroom", "accidents"] ? "Dense" : "Sparse"
             println("\nDataset: $dataset_name ($ds_type)")
             
-            db_path = joinpath(@__DIR__, "..", "data", "benchmark", "$(dataset_name).txt")
+            db_path = benchmark_path(dataset_name)
             if !isfile(db_path)
                 println(" -> [SKIP] Database not found: $db_path")
                 continue
@@ -38,11 +35,11 @@ function run_itemset_count_experiment()
             for minsup in minsups
                 min_count = minsup_to_count(minsup, length(db))
                 
-                itemsets = fpgrowth(FPTree, db, min_count)
+                itemsets = fpgrowth(OptFPTree, db, min_count)
                 count = length(itemsets)
                 
                 @printf " - Minsup = %5.3f | Output Size: %10d itemsets\n" minsup count
-                println(io, "$dataset_name,$ds_type,$minsup,$count")
+                println(io, join((dataset_name, ds_type, minsup, count), ','))
             end
         end
     end
