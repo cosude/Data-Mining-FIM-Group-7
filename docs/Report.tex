@@ -101,13 +101,13 @@ Quá trình chèn một giao dịch \texttt{Trans} vào cây tiêu tốn thời 
 
 \subsection{Các kỹ thuật tối ưu hóa bộ nhớ và tốc độ cho giải thuật FP-growth}
 \textbf{1. Tối ưu cấu trúc dữ liệu:}
-Trong cấu trúc FP-tree cơ bản, mỗi dòng trong Header Table theo dõi các nút cùng nhãn item tương ứng qua node-link, tức danh sách liên kết. Do đó, trong quá trình khai thác tập phổ biến, việc duyệt các nút qua node-link gặp phải vấn đề truy cập bộ nhớ rời rạc (pointer-chasing) dẫn đến hiện tượng trượt bộ nhớ đệm (cache miss). Nguyên nhân là do các nút mang cùng item được cấp phát động và nằm rải rác trên bộ nhớ Heap. Để giải quyết vấn đề này, danh sách liên kết được thay thế bởi một mảng liên tục \texttt{nodes::Vector\{OptFPNode\}} đặt bên trong \texttt{OptHeaderTableEntry}. Cải tiến này giữ nguyên chi phí chèn $\mathcal{O}(1)$, nhưng giúp quá trình duyệt ngược khi khai thác được diễn ra tuần tự trên vùng nhớ vật lý. Nhờ đó, CPU có thể tận dụng cơ chế nạp trước dữ liệu (cache prefetching) để gọi nhiều nút cùng lúc, tăng tốc độ truy xuất.
+Trong cấu trúc FP-tree cơ bản, mỗi dòng trong Header Table theo dõi các nút cùng nhãn item tương ứng qua node-link, tức danh sách liên kết. Do đó, trong quá trình khai thác tập phổ biến, việc duyệt các nút qua node-link gặp phải vấn đề truy cập bộ nhớ rời rạc dẫn đến hiện tượng trượt bộ nhớ đệm. Nguyên nhân là do các nút mang cùng item được cấp phát động và nằm rải rác trên bộ nhớ Heap. Để giải quyết vấn đề này, danh sách liên kết được thay thế bởi một mảng liên tục \texttt{nodes::Vector\{OptFPNode\}} đặt bên trong \texttt{OptHeaderTableEntry}. Cải tiến này giữ nguyên chi phí chèn $\mathcal{O}(1)$, nhưng giúp quá trình duyệt ngược khi khai thác được diễn ra tuần tự trên vùng nhớ vật lý. Nhờ đó, CPU có thể tận dụng cơ chế nạp trước dữ liệu để gọi nhiều nút cùng lúc, tăng tốc độ truy xuất.
 
 \textbf{2. Khử đệ quy cho giải thuật xây FP-tree:}
-Thuật toán cơ bản chèn mỗi item trong giao dịch sử dụng đệ quy. Với các CSDL dày đặc (dense) có giao dịch dài, mỗi lần đệ quy phải lưu lại các biến cục bộ, tham chiếu, địa chỉ trả về,... vào khung xếp mới (stack frame), gây lãng phí và có thể tràn bộ nhớ. Để khắc phục, ta có thể sử dụng vòng lặp cho hàm \texttt{insert\_tree!}, tuần tự thêm các item và cập nhập trực tiếp con trỏ \texttt{current\_node}.
+Thuật toán cơ bản chèn mỗi item trong giao dịch sử dụng đệ quy. Với các CSDL dày đặc có giao dịch dài, mỗi lần đệ quy phải lưu lại các biến cục bộ, tham chiếu, địa chỉ trả về,... vào khung xếp mới, gây lãng phí và có thể tràn bộ nhớ. Để khắc phục, ta có thể sử dụng vòng lặp cho hàm \texttt{insert\_tree!}, tuần tự thêm các item và cập nhập trực tiếp con trỏ \texttt{current\_node}.
 
 \textbf{3. Tái sử dụng vùng nhớ bằng BitArray:}
-Ở lượt duyệt CSDL lần hai, thao tác lọc và sắp xếp các item phổ biến ở cài đặt cơ bản khởi tạo cấu trúc \texttt{Set} mới ứng với mỗi giao dịch xét. Nhóm đã tối ưu bằng cách sử dụng một mảng nhị phân (BitVector) chia sẻ chung cho các giao dịch. Các bit tương ứng với item trong giao dịch được bật lên (\texttt{true}) để lọc tuần tự theo F-List, sau đó được tắt đi (\texttt{false}) để tái sử dụng cho giao dịch tiếp theo mà không cần cấp phát thêm bộ nhớ.
+Ở lượt duyệt CSDL lần hai, thao tác lọc và sắp xếp các item phổ biến ở cài đặt cơ bản khởi tạo cấu trúc \texttt{Set} mới ứng với mỗi giao dịch xét. Nhóm đã tối ưu bằng cách sử dụng một mảng nhị phân (BitArray) chia sẻ chung cho các giao dịch. Các bit tương ứng với item trong giao dịch được bật lên (\texttt{true}) để lọc tuần tự theo F-List, sau đó được tắt đi (\texttt{false}) để tái sử dụng cho giao dịch tiếp theo mà không cần cấp phát thêm bộ nhớ.
 
 \textbf{4. Tỉa nhánh sớm với đường dẫn đơn:}
 Khi khai thác conditional FP-tree, rất nhiều trường hợp cây thu hẹp lại thành một đường thẳng duy nhất (single-prefix path). Thay vì tiếp tục gọi đệ quy lãng phí để dựng các cây con nhỏ hơn, ta có thể sử dụng cơ chế phát hiện và ngắt đệ quy sớm. Để tạo các tổ hợp từ đường đi đơn, nhóm sử dụng các toán tử trên bit để tạo đủ $2^n - 1$ tổ hợp từ $n$ nút trên nhánh đơn này. Qua đó kỹ thuật này giúp giảm chi phí xây conditional tree, đặc biệt đối với các tập dữ liệu dày đặc như \textit{chess} hay \textit{mushroom}.
@@ -115,9 +115,9 @@ Khi khai thác conditional FP-tree, rất nhiều trường hợp cây thu hẹp
 \section{Chương 2: Thực nghiệm và đánh giá}
 
 \subsection{Môi trường thực nghiệm và các tập dữ liệu benchmark}
-Các thí nghiệm trong chương này được thực hiện trên máy tính với cấu hình phần cứng bao gồm CPU Intel Core i7 11800H, bộ nhớ RAM 16GB, hệ điều hành Windows 11. Thuật toán được cài đặt và thực thi bằng ngôn ngữ Julia phiên bản 1.13.3, mã nguồn chạy trên môi trường đơn luồng (single-thread) để đảm bảo tính công bằng khi so sánh thời gian chạy với công cụ tham chiếu SPMF (chạy trên Java Runtime Environment).
+Các thí nghiệm trong chương này được thực hiện trên máy tính với cấu hình phần cứng bao gồm CPU Intel Core i7 11800H, bộ nhớ RAM 16GB, hệ điều hành Windows 11. Thuật toán được cài đặt và thực thi bằng ngôn ngữ Julia phiên bản 1.13.3, mã nguồn chạy trên môi trường đơn luồng để đảm bảo tính công bằng khi so sánh thời gian chạy với công cụ tham chiếu SPMF.
 
-Các thí nghiệm đều được chạy trên 5 tập dữ liệu benchmark phổ biến trong cộng đồng nghiên cứu Khai phá Dữ liệu, được lấy từ SPMF. Các tập dữ liệu này bao quát đầy đủ các đặc trưng quan trọng: từ dữ liệu dày đặc (dense) với các giao dịch dài, cho đến dữ liệu thưa (sparse) mang tính thực tế cao. Chi tiết về các tập dữ liệu được mô tả trong Bảng \ref{tab:datasets}:
+Các thí nghiệm đều được chạy trên 5 tập dữ liệu benchmark phổ biến trong cộng đồng nghiên cứu Khai phá Dữ liệu, được lấy từ SPMF. Các tập dữ liệu này bao quát đầy đủ các đặc trưng quan trọng: từ dữ liệu dày đặc với các giao dịch dài, cho đến dữ liệu thưa mang tính thực tế cao. Chi tiết về các tập dữ liệu được mô tả trong Bảng \ref{tab:datasets}:
 
 \begin{table}[htbp]
 \centering
@@ -171,9 +171,9 @@ T10I4D100K & 0.01 & 385 & 385 & 100\% & 385 & 100\% \\
 Dữ liệu từ Bảng \ref{tab:correctness} cho thấy cài đặt của nhóm đạt tỉ lệ khớp 100.0\% trên toàn bộ các bộ dữ liệu thử nghiệm, không xảy ra hiện tượng bỏ sót hay dư thừa tập phổ biến nào. Giá trị support count của từng itemset cũng khớp với SPMF. Kết quả cho thấy cài đặt giải thuật FP-growth của nhóm giải quyết đúng đắn bài toán khai thác tập phổ biến.
 
 \subsection{Phân tích mối quan hệ giữa minsupport và thời gian chạy}
-Để đánh giá ảnh hưởng của minsupport lên hiệu năng của giải thuật, nhóm tiến hành đo lường thời gian thực thi của hai bản cài đặt của nhóm và so sánh với SPMF. Thực nghiệm được tiến hành bằng cách giảm dần ngưỡng độ hỗ trợ tối thiểu (minsup) để quan sát sự biến thiên của thời gian chạy. 
+Để đánh giá ảnh hưởng của minsupport lên hiệu năng của giải thuật, nhóm tiến hành đo lường thời gian thực thi của hai bản cài đặt của nhóm và so sánh với SPMF. Thực nghiệm được tiến hành bằng cách giảm dần minsupport để quan sát sự biến thiên của thời gian chạy. 
 
-Để biểu diễn trực quan, các kết quả được vẽ thành biểu đồ đồ thị đường (Line chart) tương ứng cho từng tập dữ liệu (Hình \ref{fig:runtime_all}).
+Để biểu diễn trực quan, các kết quả được vẽ thành biểu đồ đồ thị đường tương ứng cho từng tập dữ liệu (Hình \ref{fig:runtime_all}).
 
 \begin{figure*}[htbp]
     \centering
@@ -208,7 +208,7 @@ Dữ liệu từ Bảng \ref{tab:correctness} cho thấy cài đặt của nhóm
     \label{fig:runtime_all}
 \end{figure*}
 
-Có thể thấy xu hướng của cả 3 đường (SPMF, cơ bản, tối ưu) đều đi lên trên cả 5 đồ thị. Điều này cho thấy thời gian chạy của thuật toán FP-growth tăng dần khi minsupport giảm (tỉ lệ nghịch).
+Có thể thấy xu hướng của cả 3 đường (SPMF, cơ bản, tối ưu) đều đi lên trên cả 5 đồ thị. Điều này cho thấy thời gian chạy của thuật toán FP-growth tăng dần khi minsupport giảm.
 
 Mối quan hệ này có thể được lí giải dựa vào ý nghĩa của minsupport đối với bài toán khai thác tập phổ biến. Khi minsupport nhỏ đi, số lượng các itemsets - đặc biệt là 1-itemsets - phổ biến tăng lên. Do đó, khi tạo FP-tree, các giao dịch được lọc và sắp xếp dựa trên F-List sẽ cho các $[p \mid P]$ có kích thước lớn hơn, làm cho FP-tree dày đặc hơn. Vì thuật toán FP-growth khai thác trên chính FP-tree, chi phí tính toán cũng đồng thời tăng dẫn tới thời gian thực thi tăng.
 
@@ -269,5 +269,52 @@ Ngược lại, các tập dữ liệu thưa (Retail, T10I4D100K) có các giao 
 \subsection{Kết luận và đề xuất các hướng tối ưu hóa}
 
 \section{Chương 3}
+
+\subsection{Ứng dụng 1: Phân tích giỏ hàng}
+Để ứng dụng thuật toán FP-growth trong phân tích giỏ hàng, nhóm tiến hành thử nghiệm trên tập dữ liệu bán lẻ \textbf{Groceries}, tìm ra các luật kết hợp thõa mãn $minsupport = 0.1$ và $minconf = 0.2$. Sau đây là Bảng \ref{tab:top10_rules} minh họa 10 luật kết hợp có độ nâng (Lift) cao nhất, thể hiện mối tương quan dương mạnh giữa các nhóm sản phẩm.
+
+\begin{table*}[htpb]
+    \centering
+    \caption{Top 10 luật kết hợp mạnh từ tập dữ liệu Groceries (Theo Lift)}
+    \label{tab:top10_rules}
+    \vspace{0.2cm}
+    \renewcommand{\arraystretch}{1.3}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{|l|l|c|c|c|}
+        \hline
+        \textbf{X} & \textbf{Y} & \textbf{Support} & \textbf{Confidence (\%)} & \textbf{Lift} \\ \hline
+        \{other vegetables, citrus fruit\} & \{root vegetables\} & 102 & 35.92\% & 3.30 \\ \hline
+        \{yogurt, other vegetables\} & \{whipped/sour cream\} & 100 & 23.42\% & 3.27 \\ \hline
+        \{tropical fruit, other vegetables\} & \{root vegetables\} & 121 & 34.28\% & 3.14 \\ \hline
+        \{beef\} & \{root vegetables\} & 171 & 33.14\% & 3.04 \\ \hline
+        \{root vegetables, citrus fruit\} & \{other vegetables\} & 102 & 58.62\% & 3.03 \\ \hline
+        \{tropical fruit, root vegetables\} & \{other vegetables\} & 121 & 58.45\% & 3.02 \\ \hline
+        \{root vegetables\} & \{other vegetables, whole milk\} & 228 & 21.27\% & 2.84 \\ \hline
+        \{other vegetables, whole milk\} & \{root vegetables\} & 228 & 30.98\% & 2.84 \\ \hline
+        \{butter\} & \{other vegetables, whole milk\} & 113 & 20.73\% & 2.77 \\ \hline
+        \{curd, whole milk\} & \{yogurt\} & 99 & 38.52\% & 2.76 \\ \hline
+    \end{tabular}
+    }
+\end{table*}
+
+Có thể thấy từ bảng thống kê trên, các luật có Lift cao (từ 2.76 đến 3.30) cho thấy hai nhóm mặt hàng $X$ và $Y$ cùng xuất hiện trong một giỏ hàng thường xuyên hơn khoảng $3$ lần so với mức kỳ vọng nếu $X$ và $Y$ độc lập với nhau. Ví dụ, luật $\text{beef} \rightarrow \text{root vegetables}$ có Lift là $3.04$. Nếu hai mặt hàng này không liên quan, ta chỉ kỳ vọng khoảng $56$ giỏ hàng chứa cả hai, nhưng thực tế quan sát được $171$ giỏ. Nói cách khác, khách hàng mua thịt bò có khả năng mua thêm rau củ cao gấp khoảng $3$ lần so với một khách hàng bất kỳ ($33.14\%$ so với $10.9\%$).
+
+Về độ tin cậy, chỉ có $\text{root vegetables, citrus} \rightarrow \text{other vegetables}$ và $\text{tropical fruit} \rightarrow \text{root vegetables}$ được ngưỡng confident $58\%$. Các luật còn lại đạt confident khoảng $20\%$ đến dưới $40\%$. Xét lại ví dụ $\text{beef} \rightarrow \text{root vegetables}$, luật này có confident là $33.14\%$. Như vậy trong số các giỏ hàng có thịt bò, có khoảng 1/3 chúng có thêm rau củ.
+
+Khi quan sát cả Lift và độ tin cậy, ta có một số nhận định như sau:
+\begin{itemize}
+    \item Các luật $X \rightarrow Y$ có confident cao nhưng Lift thấp cho thấy do $Y$ vốn dĩ đã phổ biến trong các giỏ hàng của tập dữ liệu nên nhiều giỏ hàng có $X$ cũng có thêm $Y$ nhưng việc khách hàng mua $X$ không ảnh hưởng tới lựa chọn mua $Y$.
+    \item Các luật $X \rightarrow Y$ có Lift cao nhưng confident khiêm tốn cho thấy tồn tại mối quan hệ giữa $X$ và $Y$ trong dữ liệu nhưng $Y$ không thực sự phổ biến để các giỏ hàng có cả $Y$ và $X$ nhiều. Do trường hợp này xuất hiện nhiều trong bảng kết quả, ta nên tận dụng bằng cách đặt các mã giảm giá, quảng cáo mặt hàng rau củ nhắm tới người mua thịt bò.
+    \item Các luật $X \rightarrow Y$ có cả Lift và confident cao nên được khai thác để sắp đặt kệ hàng $Y$ gần $X$, hệ thống tư vấn,... do các luật này dự đoán tốt quyết định mua hàng của người dùng mà không cần chất xúc tác như mã giảm giá, quảng cáo,... ở trên.
+\end{itemize}
+
+Qua các quan sát trên, nhóm đưa ra các quyết định kinh doanh như sau:
+\begin{enumerate}
+    \item Sắp xếp các kệ hàng theo các luật: đặt kệ hàng các loại rau củ (vegetables và other vegetables) gần với kệ hàng thịt bò và kệ hàng trái cây (citrus và tropical), kệ hàng kem chua (whipped/sour cream) gần với kệ hàng sữa chua, kệ hàng sữa chua gần với kệ hàng sữa nguyên chất và sữa đông.
+    \item Các luật có Lift và confident cao như $\text{root vegetables, citrus} \rightarrow \text{other vegetables}$ và $\text{tropical fruit} \rightarrow \text{root vegetables}$: sử dụng cho hệ thống tư vấn. VD: khi trong giỏ hàng người dùng có rau củ và trái cây chua, gợi ý thêm các loại rau củ khác.
+    \item Các luật có Lift cao và confident thấp (đa số các luật trong bảng): sử dụng các bảng giảm giá khi mua thêm hoặc biển quảng cáo hình ảnh. VD: đặt bảng giảm giá đối với nhóm mặt hàng sau: sữa chua, sữa đông và sữa nguyên chất; ưu đãi giảm giá khi mua thịt bò và rau củ.
+\end{enumerate}
+
+\subsection{Ứng dụng 2:}
 
 \end{document}
