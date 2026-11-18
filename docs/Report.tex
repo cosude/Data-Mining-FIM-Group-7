@@ -16,15 +16,15 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
-\title{Đồ án Khai thác dữ liệu và ứng dụng: Khai thác tập phổ biến - Nhóm 7}
+\title{Đồ án Khai thác dữ liệu và ứng dụng: Khai thác tập phổ biến bằng giải thuật FP-growth - Nhóm 7}
 
-\author{\IEEEauthorblockN{1\textsuperscript{st} Huỳnh Gia Khang}
+\author{\IEEEauthorblockN{Huỳnh Gia Khang}
 \IEEEauthorblockA{\textit{Khoa Công nghệ Thông tin} \\
 \textit{Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM}\\
 TP. Hồ Chí Minh, Việt Nam \\
 MSSV: 24127179}
 \and
-\IEEEauthorblockN{2\textsuperscript{nd} Lê Phạm Minh Thu}
+\IEEEauthorblockN{Lê Phạm Minh Thu}
 \IEEEauthorblockA{\textit{Khoa Công nghệ Thông tin} \\
 \textit{Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM}\\
 TP. Hồ Chí Minh, Việt Nam \\
@@ -33,95 +33,92 @@ MSSV: 24127549}
 
 \maketitle
 
-\begin{abstract}
-    
-\end{abstract}
-
-\begin{IEEEkeywords}
-
-\end{IEEEkeywords}
-
-\section{Mở đầu}
-
 \section{Chương 1: Cài đặt}
 
 \subsection{Xử lý đầu vào và đầu ra}
 
 \subsection{Cài đặt cấu trúc dữ liệu FP-tree}
-Frequent-pattern tree (hay FP-tree) là cấu trúc dữ liệu dạng cây được dùng để khai thác các tập phổ biến mà không cần sinh tập ứng viên. Dựa vào mô tả của bài báo gốc, nhóm đã cài đặt các cấu trúc dữ liệu như sau:
+\label{subsec:data-structures}
+Frequent-pattern tree (hay FP-tree) là cấu trúc dữ liệu dạng cây được dùng để khai thác các tập phổ biến mà không cần sinh tập ứng viên. Dựa vào mô tả ở mục 2.1. \cite{han2000mining}, ta có thể cài đặt các cấu trúc dữ liệu như sau:
 
 \texttt{FPNode}:
-Mỗi nút trong FP-tree gồm có các thuộc tính sau: \texttt{item\_name} (tên của item), \texttt{count} (số lượng giao dịch có chung tiền tố từ gốc đến nút hiện tại), và \texttt{node\_link} (con trỏ đến nút tiếp theo có cùng \texttt{item\_name}).
+Mỗi nút trong FP-tree gồm có các thuộc tính: \texttt{item\_name} - tên của item, \texttt{count} - số lượng giao dịch có chung tiền tố từ gốc đến nút hiện tại, và \texttt{node\_link} - con trỏ đến nút tiếp theo có cùng \texttt{item\_name}.
 
-Để phục vụ cho các thao tác xây dựng cây và rút trích, cấu trúc nút được tổ chức thêm hai trường:
+Để phục vụ cho giải thuật xây dựng FP-tree (xem~\ref{subsec:fptree-construction}) và FP-growth (xem~\ref{subsec:fp-growth}), cấu trúc nút được tổ chức thêm hai trường:
 \begin{enumerate}
-    \item \texttt{parent::Union\{FPNode, Nothing\}}: Nút cha.
-    \item \texttt{children::Dict\{Int, FPNode}\}: Tập các nút con.
+    \item \texttt{parent::Union\{FPNode, Nothing\}}: nút cha.
+    \item \texttt{children::Dict\{Int, FPNode}\}: tập các nút con.
 \end{enumerate}
 
 \texttt{HeaderTableEntry}:
-Mỗi dòng trong bảng tiêu đề (Header Table) chứa \texttt{item\_name} và con trỏ \texttt{header\_of\_node\_link} trỏ đến nút đầu tiên có cùng \texttt{item\_name} trong FP-tree. Ngoài ra, để thao tác chèn \texttt{node\_link} được diễn ra nhanh chóng, con trỏ \texttt{tail\_of\_node\_link} trỏ đến nút cuối cũng đã được thêm vào.
+Mỗi dòng trong bảng tiêu đề - Header Table chứa \texttt{item\_name} và con trỏ \texttt{header\_of\_node\_link} đến nút đầu tiên có cùng \texttt{item\_name} trong FP-tree. Ngoài ra, để thao tác chèn \texttt{node\_link} được diễn ra nhanh chóng, con trỏ \texttt{tail\_of\_node\_link} đến nút cuối đã được thêm vào.
 
 \texttt{FPTree}:
-Cấu trúc \texttt{FPTree} chứa nút gốc (\texttt{root}) cùng với bảng tiêu đề (\texttt{header\_table}) và danh sách các item phổ biến (\texttt{flist}).
+Cấu trúc \texttt{FPTree} chứa nút gốc - \texttt{root}, bảng tiêu đề - \texttt{header\_table} và danh sách các item phổ biến - \texttt{flist}.
 
-Nhìn chung, cách cài đặt cơ bản trên đã hiện thực hóa đầy đủ các cấu trúc dữ liệu cốt lõi được mô tả trong bài báo gốc.
+Nhìn chung, cách cài đặt cơ bản trên đã hiện thực đầy đủ các cấu trúc dữ liệu được mô tả trong bài báo gốc.
 
 \subsection{Cài đặt giải thuật xây FP-tree}
-Để xây FP-tree, cần duyệt cơ sở dữ liệu hai lần. Nhóm đã cài đặt giải thuật theo mô tả như sau:
+\label{subsec:fptree-construction}
+Để xây FP-tree, cần duyệt cơ sở dữ liệu hai lần.
 
 Duyệt CSDL lần 1:
-Trong hàm \texttt{fptree\_construction}, CSDL được duyệt lần đầu bằng hàm \texttt{count\_supports} để đếm số lần xuất hiện (support count) của tất cả item. Tiếp theo, các item thõa ngưỡng hỗ trợ tối thiểu (minsupport) được sắp xếp giảm dần theo support count, tạo thành F-List. Các item trong F-List sẽ trở thành một dòng trong Header Table.
+Trong hàm \texttt{fptree\_construction}, CSDL được duyệt lần đầu bằng hàm \texttt{count\_supports} để đếm số lần xuất hiện - support count của tất cả item. Tiếp theo, các item thõa ngưỡng hỗ trợ tối thiểu - minsupport được sắp xếp giảm dần theo support count, tạo thành F-List. Các item trong F-List sẽ trở thành một dòng trong Header Table.
 
 Duyệt CSDL lần 2:
 Ta khởi tạo một \texttt{FPTree}, tiếp tục duyệt lại từng giao dịch (\texttt{Trans}) trong CSDL. Tại mỗi giao dịch, hàm \texttt{filter\_and\_sort} sẽ lọc và sắp xếp các item phổ biến dựa vào F-List.
 Kết quả trên cho ra danh sách các item được biểu diễn bởi $[p \mid P]$, với $p$ là item đầu tiên và $P$ là các item còn lại. Tiếp theo, hàm \texttt{insert\_tree!} sẽ được gọi để chèn các item trên vào \texttt{FPTree}.
 
 Hàm \texttt{insert\_tree!}:
-\texttt{insert\_tree!} là một hàm đệ quy để chèn các $[p \mid P]$ vào \texttt{FPTree}, cụ thể như sau:
+\texttt{insert\_tree!} là một hàm đệ quy để chèn các $[p \mid P]$ vào \texttt{FPTree}, cụ thể:
 \begin{enumerate}
     \item Lấy item đầu tiên $p = \texttt{p\_P[1]}$:
     \begin{enumerate}
         \item Nếu nút đang xét $T$ có con là item $p$: tăng count của nút con thêm 1.
         \item Ngược lại: tạo nút con mới $N$ có nhãn $p$, gán \texttt{count = 1} cho $T$.
     \end{enumerate}
-    \item Khi $N$ được tạo với nhãn item $p$:
+    \item Khi nút $N$ được tạo với nhãn item $p$:
     \begin{enumerate}
-        \item Nếu dòng của item $p$ trong Header Table chưa có \texttt{node\_link}: gán $N$ trực tiếp làm \texttt{header\_of\_node\_link}.
-        \item Ngược lại: nối thêm $N$ vào \texttt{tail\_of\_node\_link}.
+        \item Nếu dòng của item $p$ trong Header Table chưa có \texttt{node\_link}: gán nút $N$ trực tiếp làm \texttt{header\_of\_node\_link}.
+        \item Ngược lại: nối thêm nút $N$ vào \texttt{tail\_of\_node\_link}.
     \end{enumerate}
     \item Cập nhật \texttt{tail\_of\_node\_link} thành $N$.
     \item Cuối cùng, nếu tập $P$ không rỗng, mảng con được trích xuất bằng macro \texttt{@view p\_P[2:end]} (nhằm triệt tiêu chi phí cấp phát vùng nhớ mới) và tiếp tục gọi đệ quy \texttt{insert\_tree!} cho phần còn lại.
 \end{enumerate}
 
-Đánh giá độ phức tạp:
 Quá trình chèn một giao dịch \texttt{Trans} vào cây tiêu tốn thời gian $\mathcal{O}(|\text{freq}(\text{Trans})|)$, trong đó $|\text{freq}(\text{Trans})|$ là số lượng các item phổ biến của giao dịch.
 
 \subsection{Cài đặt giải thuật FP-growth}
+\label{subsec:fp-growth}
 
 \subsection{Các kỹ thuật tối ưu hóa bộ nhớ và tốc độ cho giải thuật FP-growth}
-\textbf{1. Tối ưu cấu trúc dữ liệu:}
-Trong cấu trúc FP-tree cơ bản, mỗi dòng trong Header Table theo dõi các nút cùng nhãn item tương ứng qua node-link, tức danh sách liên kết. Do đó, trong quá trình khai thác tập phổ biến, việc duyệt các nút qua node-link gặp phải vấn đề truy cập bộ nhớ rời rạc dẫn đến hiện tượng trượt bộ nhớ đệm. Nguyên nhân là do các nút mang cùng item được cấp phát động và nằm rải rác trên bộ nhớ Heap. Để giải quyết vấn đề này, danh sách liên kết được thay thế bởi một mảng liên tục \texttt{nodes::Vector\{OptFPNode\}} đặt bên trong \texttt{OptHeaderTableEntry}. Cải tiến này giữ nguyên chi phí chèn $\mathcal{O}(1)$, nhưng giúp quá trình duyệt ngược khi khai thác được diễn ra tuần tự trên vùng nhớ vật lý. Nhờ đó, CPU có thể tận dụng cơ chế nạp trước dữ liệu để gọi nhiều nút cùng lúc, tăng tốc độ truy xuất.
+\textbf{Tối ưu cấu trúc dữ liệu:}
+Trong cấu trúc FP-tree cơ bản, mỗi dòng trong Header Table theo dõi các nút cùng nhãn item tương ứng qua node-link, tức danh sách liên kết. Do đó, trong quá trình khai thác tập phổ biến, việc duyệt các nút qua node-link gặp phải vấn đề truy cập bộ nhớ rời rạc dẫn đến việc trượt bộ nhớ đệm. Một thí nghiệm vào năm 2007 \cite{liu2007optimization} cho thấy FP-growth có tỉ lệ trượt bộ nhớ đệm L3 rất cao, lên đến $1\%$ tất cả dữ liệu. Để giải quyết vấn đề này, danh sách liên kết được thay thế bởi một mảng liên tục \texttt{nodes::Vector\{OptFPNode\}} đặt bên trong \texttt{OptHeaderTableEntry}. Cải tiến này giữ nguyên chi phí chèn $\mathcal{O}(1)$, nhưng giúp quá trình duyệt ngược khi khai thác được diễn ra tuần tự trên vùng nhớ vật lý. Nhờ đó, CPU có thể tận dụng cơ chế nạp trước dữ liệu để gọi nhiều nút cùng lúc, tăng tốc độ truy xuất.
 
-\textbf{2. Khử đệ quy cho giải thuật xây FP-tree:}
-Thuật toán cơ bản chèn mỗi item trong giao dịch sử dụng đệ quy. Với các CSDL dày đặc có giao dịch dài, mỗi lần đệ quy phải lưu lại các biến cục bộ, tham chiếu, địa chỉ trả về,... vào khung xếp mới, gây lãng phí và có thể tràn bộ nhớ. Để khắc phục, ta có thể sử dụng vòng lặp cho hàm \texttt{insert\_tree!}, tuần tự thêm các item và cập nhập trực tiếp con trỏ \texttt{current\_node}.
+\textbf{Khử đệ quy cho giải thuật xây FP-tree:}
+Cài đặt cơ bản chèn các item trong giao dịch sử dụng đệ quy. Với các CSDL dày đặc có giao dịch dài, mỗi lần đệ quy phải lưu lại các biến cục bộ, tham chiếu, địa chỉ trả về,... vào khung xếp mới, gây lãng phí và có thể tràn bộ nhớ. Để khắc phục, ta có thể sử dụng vòng lặp cho hàm \texttt{insert\_tree!}, tuần tự thêm các item và cập nhập trực tiếp con trỏ \texttt{current\_node}.
 
-\textbf{3. Tái sử dụng vùng nhớ bằng BitArray:}
-Ở lượt duyệt CSDL lần hai, thao tác lọc và sắp xếp các item phổ biến ở cài đặt cơ bản khởi tạo cấu trúc \texttt{Set} mới ứng với mỗi giao dịch xét. Nhóm đã tối ưu bằng cách sử dụng một mảng nhị phân (BitArray) chia sẻ chung cho các giao dịch. Các bit tương ứng với item trong giao dịch được bật lên (\texttt{true}) để lọc tuần tự theo F-List, sau đó được tắt đi (\texttt{false}) để tái sử dụng cho giao dịch tiếp theo mà không cần cấp phát thêm bộ nhớ.
+\textbf{Tái sử dụng vùng nhớ bằng BitArray:}
+Ở lượt duyệt CSDL lần hai, thao tác lọc và sắp xếp các item phổ biến ở cài đặt cơ bản khởi tạo cấu trúc \texttt{Set} mới ứng với mỗi giao dịch xét. Ta có thể tối ưu bằng cách sử dụng một mảng nhị phân (BitArray) chia sẻ chung cho các giao dịch. Các bit tương ứng với item trong giao dịch được bật lên để lọc tuần tự theo F-List, sau đó được tắt đi để tái sử dụng cho giao dịch tiếp theo mà không cần cấp phát thêm bộ nhớ.
 
-\textbf{4. Tỉa nhánh sớm với đường dẫn đơn:}
-Khi khai thác conditional FP-tree, rất nhiều trường hợp cây thu hẹp lại thành một đường thẳng duy nhất (single-prefix path). Thay vì tiếp tục gọi đệ quy lãng phí để dựng các cây con nhỏ hơn, ta có thể sử dụng cơ chế phát hiện và ngắt đệ quy sớm. Để tạo các tổ hợp từ đường đi đơn, nhóm sử dụng các toán tử trên bit để tạo đủ $2^n - 1$ tổ hợp từ $n$ nút trên nhánh đơn này. Qua đó kỹ thuật này giúp giảm chi phí xây conditional tree, đặc biệt đối với các tập dữ liệu dày đặc như \textit{chess} hay \textit{mushroom}.
+\textbf{Tỉa nhánh sớm với đường dẫn đơn:}
+Khi khai thác conditional FP-tree, rất nhiều trường hợp cây thu hẹp lại thành một đường thẳng duy nhất (single-prefix path). Thay vì tiếp tục gọi đệ quy lãng phí để dựng các cây con nhỏ hơn, ta có thể sử dụng cơ chế phát hiện và ngắt đệ quy sớm. Để tạo các tổ hợp từ đường đi đơn, ta có thể sử dụng các toán tử trên bit để tạo đủ $2^n - 1$ tổ hợp từ $n$ nút trên nhánh đơn này. Qua đó kỹ thuật này giúp giảm chi phí xây conditional tree, đặc biệt đối với các tập dữ liệu dày đặc như \textit{chess} hay \textit{mushroom}.
+
+\subsection{Kết quả so sánh cài đặt tối ưu và cơ bản}
+Khi chạy kiểm thử hai cài đặt trên trong môi trường Google Colab trên $5$ cơ sở dữ liệu ở ~\ref{subsec:environment-datasets}, cài đặt tối ưu có thời gian chạy nhanh hơn khoảng $1.57$ lần và tiết kiệm bộ nhớ khoảng $2.32$ lần so với cài đặt cơ bản.
 
 \section{Chương 2: Thực nghiệm và đánh giá}
 
 \subsection{Môi trường thực nghiệm và các tập dữ liệu benchmark}
+\label{subsec:environment-datasets}
+
 Các thí nghiệm trong chương này được thực hiện trên máy tính với cấu hình phần cứng bao gồm CPU Intel Core i7 11800H, bộ nhớ RAM 16GB, hệ điều hành Windows 11. Thuật toán được cài đặt và thực thi bằng ngôn ngữ Julia phiên bản 1.13.3, mã nguồn chạy trên môi trường đơn luồng để đảm bảo tính công bằng khi so sánh thời gian chạy với công cụ tham chiếu SPMF.
 
-Các thí nghiệm đều được chạy trên 5 tập dữ liệu benchmark phổ biến trong cộng đồng nghiên cứu Khai phá Dữ liệu, được lấy từ SPMF. Các tập dữ liệu này bao quát đầy đủ các đặc trưng quan trọng: từ dữ liệu dày đặc với các giao dịch dài, cho đến dữ liệu thưa mang tính thực tế cao. Chi tiết về các tập dữ liệu được mô tả trong Bảng \ref{tab:datasets}:
+Các thí nghiệm đều được chạy trên 5 tập dữ liệu benchmark phổ biến trong cộng đồng nghiên cứu Khai phá Dữ liệu, được tải từ SPMF \cite{fournierviger2014spmf}. 5 tập dữ liệu bao quát đầy đủ các đặc trưng quan trọng: dữ liệu dày đặc - \textit{chess}, \textit{mushroom} (thuộc UCI \cite{uci1998repository}) và \textit{accidents} \cite{geurts2003profiling}, ; dữ liệu thưa - \textit{retail} \cite{brijs1999using}; dữ liệu tổng hợp - \textit{T10I4D100K} \cite{agrawal1994fast}. Chi tiết về các tập dữ liệu được mô tả trong Bảng \ref{tab:datasets}:
 
 \begin{table}[htbp]
 \centering
-\caption{Thống kê các tập dữ liệu benchmark được sử dụng trong thực nghiệm (theo SPMF)}
+\caption{Thống kê các tập dữ liệu benchmark được sử dụng \cite{fournierviger2014spmf}}
 \label{tab:datasets}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{|l|r|r|c|p{3.5cm}|}
@@ -147,7 +144,7 @@ T10I4D100K & 100.000 & 870 & 10.1 & Dữ liệu tổng hợp, thưa (1.16\%) \\
 
 \begin{table}[htbp]
 \centering
-\caption{Kết quả kiểm tra tính đúng đắn của hai bản cài đặt so với SPMF}
+\caption{Kết quả đối chiếu của hai bản cài đặt so với SPMF}
 \label{tab:correctness}
 \resizebox{\columnwidth}{!}{
 \begin{tabular}{|l|c|r|r|c|r|c|}
@@ -168,7 +165,7 @@ T10I4D100K & 0.01 & 385 & 385 & 100\% & 385 & 100\% \\
 }
 \end{table}
 
-Dữ liệu từ Bảng \ref{tab:correctness} cho thấy cài đặt của nhóm đạt tỉ lệ khớp 100.0\% trên toàn bộ các bộ dữ liệu thử nghiệm, không xảy ra hiện tượng bỏ sót hay dư thừa tập phổ biến nào. Giá trị support count của từng itemset cũng khớp với SPMF. Kết quả cho thấy cài đặt giải thuật FP-growth của nhóm giải quyết đúng đắn bài toán khai thác tập phổ biến.
+Bảng \ref{tab:correctness} cho thấy hai cài đặt của nhóm đạt tỉ lệ khớp $100.0\%$ trên toàn bộ các bộ dữ liệu thử nghiệm, không xảy ra hiện tượng bỏ sót hay dư thừa tập phổ biến nào. Giá trị support count của từng itemset cũng khớp với SPMF. Như vậy có thể kết luận hai giải thuật FP-growth được cài đặt phù hợp với bài toán khai thác tập phổ biến.
 
 \subsection{Phân tích mối quan hệ giữa minsupport và thời gian chạy}
 Để đánh giá ảnh hưởng của minsupport lên hiệu năng của giải thuật, nhóm tiến hành đo lường thời gian thực thi của hai bản cài đặt của nhóm và so sánh với SPMF. Thực nghiệm được tiến hành bằng cách giảm dần minsupport để quan sát sự biến thiên của thời gian chạy. 
@@ -181,16 +178,19 @@ Dữ liệu từ Bảng \ref{tab:correctness} cho thấy cài đặt của nhóm
         \centering
         \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_chess.png} % Chess
         \caption{Chess (Dày đặc)}
+        \label{fig:runtime-chess}
     \end{minipage}\hfill
     \begin{minipage}{0.32\textwidth}
         \centering
         \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_mushroom.png} % Mushroom
         \caption{Mushroom (Dày đặc)}
+        \label{fig:runtime-mushroom}
     \end{minipage}\hfill
     \begin{minipage}{0.32\textwidth}
         \centering
         \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_accidents.png} % Accidents
         \caption{Accidents (Dày đặc)}
+        \label{fig:runtime-accidents}
     \end{minipage}
     
     \vspace{0.5cm}
@@ -198,17 +198,19 @@ Dữ liệu từ Bảng \ref{tab:correctness} cho thấy cài đặt của nhóm
         \centering
         \includegraphics[width=0.7\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_retail.png} % Retail
         \caption{Retail (Thưa)}
+        \label{fig:runtime-retail}
     \end{minipage}\hfill
     \begin{minipage}{0.48\textwidth}
         \centering
         \includegraphics[width=0.7\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_T10I4D100K.png} % T10I4D100K
         \caption{T10I4D100K (Thưa)}
+        \label{fig:runtime-T10I4D100K}
     \end{minipage}
     \caption{Biểu đồ so sánh thời gian chạy theo minsupport giữa cài đặt cơ bản, tối ưu và SPMF}
     \label{fig:runtime_all}
 \end{figure*}
 
-Có thể thấy xu hướng của cả 3 đường (SPMF, cơ bản, tối ưu) đều đi lên trên cả 5 đồ thị. Điều này cho thấy thời gian chạy của thuật toán FP-growth tăng dần khi minsupport giảm.
+Có thể thấy xu hướng của cả 3 đường (SPMF, cơ bản, tối ưu) đều đi lên trên cả 5 đồ thị (Hình \ref{fig:runtime_all}). Điều này cho thấy thời gian chạy của thuật toán FP-growth tăng dần khi minsupport giảm.
 
 Mối quan hệ này có thể được lí giải dựa vào ý nghĩa của minsupport đối với bài toán khai thác tập phổ biến. Khi minsupport nhỏ đi, số lượng các itemsets - đặc biệt là 1-itemsets - phổ biến tăng lên. Do đó, khi tạo FP-tree, các giao dịch được lọc và sắp xếp dựa trên F-List sẽ cho các $[p \mid P]$ có kích thước lớn hơn, làm cho FP-tree dày đặc hơn. Vì thuật toán FP-growth khai thác trên chính FP-tree, chi phí tính toán cũng đồng thời tăng dẫn tới thời gian thực thi tăng.
 
@@ -216,49 +218,49 @@ Hai cài đặt bằng Julia của nhóm đều có thời gian thực thi thấ
 
 Ngoài ra, với minsupport tương đối cao, thời gian thực thi giữa bản cơ bản và tối ưu tương đương nhau, cho thấy các cải tiến tối ưu bộ nhớ và thời gian chưa làm nên khác biệt khi FP-tree chưa quá phức tạp.
 
-Đáng chú ý ở tập dữ liệu thưa \textit{T10I4D100K}, khi minsupport giảm xuống các mức thấp nhất (từ 0.02 xuống 0.01), thời gian chạy của cài đặt cơ bản tăng lên khoảng 3 lần (từ dưới 0.5s lên dưới 1.5s), trong khi độ dốc lên của đường tối ưu và SPMF tương đương nhau. Qua đó, quan sát này đã thể hiện rõ rệt ảnh hưởng của các kỹ thuật tối ưu bộ nhớ và thời gian đối với giải thuật FP-growth.
+Đáng chú ý ở tập dữ liệu thưa \textit{T10I4D100K} (Hình \ref{fig:runtime-T10I4D100K}), khi minsupport giảm xuống các mức thấp nhất (từ $0.02$ xuống $0.01$), thời gian chạy của cài đặt cơ bản tăng lên khoảng $3$ lần (từ dưới $0.5s$ lên dưới $1.5s$), trong khi độ dốc lên của đường tối ưu và SPMF tương đương nhau. Qua đó, quan sát này đã thể hiện rõ rệt ảnh hưởng của các kỹ thuật tối ưu bộ nhớ và thời gian đối với giải thuật FP-growth.
 
 \subsection{Phân tích mối quan hệ giữa số lượng tập phổ biến và minsupport}
-Để đánh giá, so sánh số lượng tập phổ biến của dữ liệu dày và thưa, nhóm tiếp tục đo lường số lượng tập phổ biến sinh ra tại các ngưỡng \textit{minsup} tương ứng với tập dữ liệu dày và thưa. Trục Y của đồ thị là thang đo Logarit cơ số 10 (\textit{Log Scale}) nhằm thể hiện rõ sự tăng trưởng theo cấp số nhân (Hình \ref{fig:itemset_count}).
+Để đánh giá, so sánh số lượng tập phổ biến của dữ liệu dày và thưa, nhóm tiếp tục đo lường số lượng tập phổ biến sinh ra tại các ngưỡng \textit{minsup} tương ứng với tập dữ liệu dày và thưa. Trục Y của đồ thị là thang đo Logarit cơ số 10 - \textit{Log Scale} nhằm thể hiện sự tăng trưởng theo cấp số nhân (Hình \ref{fig:itemset_count}).
 
 \begin{figure*}[htbp]
     \centering
     \begin{minipage}{0.32\textwidth}
         \centering
         \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_chess.png} % Chess
-        \caption{Chess (Dày đặc)}
+        \caption{chess (Dày đặc)}
     \end{minipage}\hfill
     \begin{minipage}{0.32\textwidth}
         \centering
         \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_mushroom.png} % Mushroom
-        \caption{Mushroom (Dày đặc)}
+        \caption{mushroom (Dày đặc)}
     \end{minipage}\hfill
     \begin{minipage}{0.32\textwidth}
         \centering
         \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_accidents.png} % Accidents
-        \caption{Accidents (Dày đặc)}
+        \caption{accidents (Dày đặc)}
     \end{minipage}
     
     \vspace{0.5cm}
     \begin{minipage}{0.48\textwidth}
         \centering
         \includegraphics[width=0.7\linewidth]{../data/results/exp3_itemset_count/plot_count_accidents.png} % Retail
-        \caption{Retail (Thưa)}
+        \caption{retail (Thưa)}
     \end{minipage}\hfill
     \begin{minipage}{0.48\textwidth}
         \centering
         \includegraphics[width=0.7\linewidth]{../data/results/exp3_itemset_count/plot_count_T10I4D100K.png} % T10I4D100K
         \caption{T10I4D100K (Thưa)}
     \end{minipage}
-    \caption{Biểu đồ số lượng tập phổ biến sinh ra theo Minsup (Thang đo Logarit)}
+    \caption{Biểu đồ số lượng tập phổ biến khai thác theo minsupport}
     \label{fig:itemset_count}
 \end{figure*}
 
 Quan sát trên cả 5 đồ thị, khi minsupport giảm dần, số lượng tập phổ biến khai thác được tăng lên. Do trục Y của đồ thị là thang đo logarit, có thể thấy khi minsupport chỉ giảm một lượng nhỏ số tập phổ biến sẽ tăng lên đáng kể theo cấp số nhân.
 
-Đối với các tập dữ liệu dày đặc (Chess, Mushroom, Accidents), khi các giao dịch dài và các item lặp lại nhiều, số lượng tập phổ biến được khai thác rất nhiều và tương đối nhạy cảm với minsupport. Có thể thấy trên tập Mushroom, khi giảm minsupport từ 0.25 thành 0.2, (giảm 0.05), số lượng tập phổ biến tăng gấp 10 lần (từ 5.393 lên 53.337).
+Đối với các tập dữ liệu dày đặc (\textit{chess}, \textit{mushroom}, \textit{accidents}), khi các giao dịch dài và các item lặp lại nhiều, số lượng tập phổ biến được khai thác rất nhiều và tương đối nhạy cảm với minsupport. Có thể thấy trên tập \textit{mushroom}, khi giảm minsupport từ $0.25$ thành $0.2$, (giảm $0.05$), số lượng tập phổ biến tăng gấp $10$ lần (từ $5.393$ lên $53.337$).
 
-Ngược lại, các tập dữ liệu thưa (Retail, T10I4D100K) có các giao dịch tương đối ngắn, các item lặp lại ít, số lượng tập phổ biến ít hơn nhiều so với các tập dữ liệu dày đặc ở cùng một ngưỡng minsupport và thay đổi ít hơn khi minsupport thay đổi. Ví dụ trên tập Retail, ngưỡng minsupport 0.1 chỉ có đúng 9 tập phổ biến và khi giảm còn 0.04, chỉ có thêm 9 tập phổ biến mới. 
+Ngược lại, các tập dữ liệu thưa (\textit{retail}, \textit{T10I4D100K}) có các giao dịch tương đối ngắn, các item lặp lại ít, số lượng tập phổ biến ít hơn nhiều so với các tập dữ liệu dày đặc ở cùng một ngưỡng minsupport và thay đổi ít hơn khi minsupport thay đổi. Ví dụ trên tập \textit{retail}, ngưỡng minsupport $0.1$ chỉ có đúng $9$ tập phổ biến và khi giảm còn $0.04$, chỉ có thêm $9$ tập phổ biến mới. 
 
 \subsection{Đánh giá và so sánh hiệu năng bộ nhớ}
 
@@ -271,18 +273,18 @@ Ngược lại, các tập dữ liệu thưa (Retail, T10I4D100K) có các giao 
 \section{Chương 3}
 
 \subsection{Ứng dụng 1: Phân tích giỏ hàng}
-Để ứng dụng thuật toán FP-growth trong phân tích giỏ hàng, nhóm tiến hành thử nghiệm trên tập dữ liệu bán lẻ \textbf{Groceries}, tìm ra các luật kết hợp thõa mãn $minsupport = 0.1$ và $minconf = 0.2$. Sau đây là Bảng \ref{tab:top10_rules} minh họa 10 luật kết hợp có độ nâng (Lift) cao nhất, thể hiện mối tương quan dương mạnh giữa các nhóm sản phẩm.
+Để ứng dụng thuật toán FP-growth trong phân tích giỏ hàng, nhóm tiến hành thử nghiệm trên tập dữ liệu bán lẻ \textit{groceries}, tìm ra các luật kết hợp thõa mãn $minsupport = 0.1$ và $minconf = 0.2$. Sau đây là Bảng \ref{tab:top10_rules} minh họa 10 luật kết hợp có độ nâng - Lift cao nhất, thể hiện mối tương quan dương mạnh giữa các nhóm sản phẩm.
 
 \begin{table*}[htpb]
     \centering
-    \caption{Top 10 luật kết hợp mạnh từ tập dữ liệu Groceries (Theo Lift)}
+    \caption{Top 10 luật kết hợp mạnh từ tập dữ liệu groceries (Theo Lift)}
     \label{tab:top10_rules}
     \vspace{0.2cm}
     \renewcommand{\arraystretch}{1.3}
     \resizebox{\textwidth}{!}{
     \begin{tabular}{|l|l|c|c|c|}
         \hline
-        \textbf{X} & \textbf{Y} & \textbf{Support} & \textbf{Confidence (\%)} & \textbf{Lift} \\ \hline
+        \textbf{X} & \textbf{Y} & \textbf{Support} & \textbf{Confidence} & \textbf{Lift} \\ \hline
         \{other vegetables, citrus fruit\} & \{root vegetables\} & 102 & 35.92\% & 3.30 \\ \hline
         \{yogurt, other vegetables\} & \{whipped/sour cream\} & 100 & 23.42\% & 3.27 \\ \hline
         \{tropical fruit, other vegetables\} & \{root vegetables\} & 121 & 34.28\% & 3.14 \\ \hline
@@ -297,9 +299,9 @@ Ngược lại, các tập dữ liệu thưa (Retail, T10I4D100K) có các giao 
     }
 \end{table*}
 
-Có thể thấy từ bảng thống kê trên, các luật có Lift cao (từ 2.76 đến 3.30) cho thấy hai nhóm mặt hàng $X$ và $Y$ cùng xuất hiện trong một giỏ hàng thường xuyên hơn khoảng $3$ lần so với mức kỳ vọng nếu $X$ và $Y$ độc lập với nhau. Ví dụ, luật $\text{beef} \rightarrow \text{root vegetables}$ có Lift là $3.04$. Nếu hai mặt hàng này không liên quan, ta chỉ kỳ vọng khoảng $56$ giỏ hàng chứa cả hai, nhưng thực tế quan sát được $171$ giỏ. Nói cách khác, khách hàng mua thịt bò có khả năng mua thêm rau củ cao gấp khoảng $3$ lần so với một khách hàng bất kỳ ($33.14\%$ so với $10.9\%$).
+Có thể thấy từ bảng thống kê trên, các luật có Lift cao (từ $2.76$ đến $3.30$) cho thấy hai nhóm mặt hàng $X$ và $Y$ cùng xuất hiện trong một giỏ hàng thường xuyên hơn khoảng $3$ lần so với mức kỳ vọng nếu $X$ và $Y$ độc lập với nhau. Ví dụ, luật $\text{beef} \rightarrow \text{root vegetables}$ có Lift là $3.04$. Nếu hai mặt hàng này không liên quan, ta chỉ kỳ vọng khoảng $56$ giỏ hàng chứa cả hai, nhưng thực tế quan sát được $171$ giỏ. Nói cách khác, khách hàng mua thịt bò có khả năng mua thêm rau củ cao gấp khoảng $3$ lần so với một khách hàng bất kỳ ($33.14\%$ so với $10.9\%$).
 
-Về độ tin cậy, chỉ có $\text{root vegetables, citrus} \rightarrow \text{other vegetables}$ và $\text{tropical fruit} \rightarrow \text{root vegetables}$ được ngưỡng confident $58\%$. Các luật còn lại đạt confident khoảng $20\%$ đến dưới $40\%$. Xét lại ví dụ $\text{beef} \rightarrow \text{root vegetables}$, luật này có confident là $33.14\%$. Như vậy trong số các giỏ hàng có thịt bò, có khoảng 1/3 chúng có thêm rau củ.
+Về độ tin cậy, chỉ có $\text{root vegetables, citrus} \rightarrow \text{other vegetables}$ và $\text{tropical fruit} \rightarrow \text{root vegetables}$ được ngưỡng confident $58\%$. Các luật còn lại đạt confident khoảng $20\%$ đến dưới $40\%$. Xét lại ví dụ $\text{beef} \rightarrow \text{root vegetables}$, luật này có confident là $33.14\%$. Như vậy trong số các giỏ hàng có thịt bò, có khoảng $1/3$ chúng có thêm rau củ.
 
 Khi quan sát cả Lift và độ tin cậy, ta có một số nhận định như sau:
 \begin{itemize}
@@ -316,5 +318,30 @@ Qua các quan sát trên, nhóm đưa ra các quyết định kinh doanh như sa
 \end{enumerate}
 
 \subsection{Ứng dụng 2:}
+
+\begin{thebibliography}{9}
+
+\bibitem{han2000mining}
+Jiawei Han, Jian Pei, and Yiwen Yin. 2000. Mining frequent patterns without candidate generation. In \textit{ACM SIGMOD Record}, 29(2), 1-12.
+
+\bibitem{liu2007optimization}
+Li Liu, Eric Li, Yimin Zhang, and Zhizhong Tang. 2007. Optimization of Frequent Itemset Mining on Multiple-Core Processor. In \textit{Proceedings of the 33rd international conference on Very large data bases (VLDB)}, 1275--1285.
+
+\bibitem{fournierviger2014spmf}
+Philippe Fournier-Viger, Antonio Gomariz, Ted Gueniche, Azadeh Soltani, Cheng-Wei Wu, and Vincent S. Tseng. 2014. SPMF: A Java Open-Source Pattern Mining Library. \textit{Journal of Machine Learning Research}, 15(104), 3569--3573.
+
+\bibitem{agrawal1994fast}
+Rakesh Agrawal and Ramakrishnan Srikant. 1994. Fast Algorithms for Mining Association Rules in Large Databases. In \textit{Proceedings of the 20th International Conference on Very Large Data Bases (VLDB)}, 487--499.
+
+\bibitem{brijs1999using}
+Tom Brijs, Gilbert Swinnen, Koen Vanhoof, and Geert Wets. 1999. Using association rules for product assortment decisions: A case study. In \textit{Proceedings of the fifth ACM SIGKDD international conference on Knowledge discovery and data mining}, 254--260.
+
+\bibitem{geurts2003profiling}
+Karolien Geurts, Geert Wets, Tom Brijs, and Koen Vanhoof. 2003. Profiling of High-Frequency Accident Locations by Use of Association Rules. \textit{Transportation Research Record}, 1840, 123--130.
+
+\bibitem{uci1998repository}
+Markelle Kelly, Rachel Longjohn, and Kolby Nottingham. The UCI Machine Learning Repository. https://archive.ics.uci.edu.
+
+\end{thebibliography}
 
 \end{document}
