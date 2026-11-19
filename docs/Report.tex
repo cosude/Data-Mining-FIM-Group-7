@@ -317,7 +317,67 @@ Qua các quan sát trên, nhóm đưa ra các quyết định kinh doanh như sa
     \item Các luật có Lift cao và confident thấp (đa số các luật trong bảng): sử dụng các bảng giảm giá khi mua thêm hoặc biển quảng cáo hình ảnh. VD: đặt bảng giảm giá đối với nhóm mặt hàng sau: sữa chua, sữa đông và sữa nguyên chất; ưu đãi giảm giá khi mua thịt bò và rau củ.
 \end{enumerate}
 
-\subsection{Ứng dụng 2:}
+\subsection{Ứng dụng 2: Phân tích dữ liệu sinh học}
+Trong tế bào nhân thực, một gen gồm các đoạn \textit{exon} (được giữ lại để tổng hợp protein) xen kẽ với các đoạn \textit{intron} (bị cắt bỏ). Quá trình cắt bỏ intron và nối các exon lại với nhau được gọi là cắt nối (\textit{splicing}), ranh giới giữa exon và intron được gọi là điểm nối (\textit{splice junction}). Ở ứng dụng này, nhóm sử dụng FP-growth để tìm các mẫu nucleotide đặc trưng xung quanh điểm nối.
+
+\textbf{Dữ liệu và cách chuyển đổi thành giao dịch.} Nhóm sử dụng tập dữ liệu \textit{Splice-junction Gene Sequences} \cite{noordewier1991training} từ UCI \cite{uci1998repository}, gồm $3190$ đoạn DNA người, mỗi đoạn dài $60$ nucleotide (A, C, G, T) với vị trí cần xét nằm giữa nucleotide thứ $30$ và $31$. Mỗi đoạn được gán một trong ba nhãn: EI - ranh giới exon $\rightarrow$ intron (\textit{donor site}, $767$ đoạn), IE - ranh giới intron $\rightarrow$ exon (\textit{acceptor site}, $768$ đoạn) và N - không chứa ranh giới ($1655$ đoạn, dùng làm nhóm đối chứng). Do FP-growth xem mỗi giao dịch là một tập hợp không có thứ tự, nếu chỉ dùng nucleotide làm item thì mỗi giao dịch có tối đa $4$ item và toàn bộ thông tin vị trí bị mất. Vì vậy, mỗi đoạn DNA được chuyển thành một giao dịch gồm $60$ item dạng (vị trí, nucleotide), ví dụ item $p31{=}G$ nghĩa là nucleotide ở vị trí $31$ là G, tổng cộng $60 \times 4 = 240$ item. Các ký hiệu không xác định (D, N, S, R) bị loại bỏ. Mọi giao dịch có cùng độ dài $60$ trên chỉ $240$ item nên đây là dữ liệu dày đặc, tương tự \textit{chess}.
+
+\textbf{Phương pháp.} Mỗi lớp được khai thác riêng với $minsupport = 0.4$. Để đánh giá mức độ đặc trưng của một tập phổ biến $X$ trong lớp $C \in \{EI, IE\}$ so với nhóm đối chứng, nhóm sử dụng độ tăng trưởng (\textit{growth rate}):
+\begin{equation}
+    GR(X) = \frac{supp_C(X)}{\max\left(supp_N(X),\ 1/|D_N|\right)}
+    \label{eq:growth_rate}
+\end{equation}
+trong đó $supp_C(X)$ và $supp_N(X)$ lần lượt là support tương đối của $X$ trong lớp $C$ và lớp N, $|D_N| = 1655$ là số đoạn DNA của lớp N. Cận dưới $1/|D_N|$ tránh phép chia cho $0$ khi $X$ không xuất hiện trong lớp N.
+
+\textbf{Kết quả.} Lớp EI có $63$ tập phổ biến, lớp IE có $61$ tập phổ biến, trong khi lớp N không có tập phổ biến nào ở cùng ngưỡng: item phổ biến nhất của lớp N chỉ đạt $28.9\%$, gần với mức ngẫu nhiên $25\%$. Bảng \ref{tab:splice_patterns} trình bày các tập phổ biến tiêu biểu của hai lớp EI và IE, Hình \ref{fig:splice_freq} biểu diễn tần suất của từng nucleotide tại từng vị trí, tức support của các tập phổ biến 1 phần tử.
+
+\begin{table}[htpb]
+    \centering
+    \caption{Các tập phổ biến tiêu biểu của lớp EI và IE ($minsupport = 0.4$)}
+    \label{tab:splice_patterns}
+    \renewcommand{\arraystretch}{1.2}
+    \resizebox{\columnwidth}{!}{
+    \begin{tabular}{|l|c|c|c|}
+        \hline
+        \textbf{Tập phổ biến $X$} & \textbf{$supp_C$} & \textbf{$supp_N$} & \textbf{$GR$} \\ \hline
+        \multicolumn{4}{|c|}{\textbf{Lớp EI (exon $\rightarrow$ intron)}} \\ \hline
+        \{p31=G, p32=T\} & 99.0\% & 5.9\% & 16.7 \\ \hline
+        \{p31=G, p32=T, p35=G\} & 85.0\% & 0.9\% & 93.8 \\ \hline
+        \{p30=G, p31=G, p32=T\} & 80.7\% & 1.5\% & 53.4 \\ \hline
+        \{p31=G, p32=T, p34=A, p35=G\} & 63.8\% & 0.1\% & 1055.1 \\ \hline
+        \{p30=G, p31=G, p32=T, p34=A, p35=G\} & 47.3\% & 0.0\% & 783.3 \\ \hline
+        \multicolumn{4}{|c|}{\textbf{Lớp IE (intron $\rightarrow$ exon)}} \\ \hline
+        \{p29=A, p30=G\} & 99.5\% & 7.7\% & 13.0 \\ \hline
+        \{p28=C, p29=A, p30=G\} & 78.8\% & 2.3\% & 34.3 \\ \hline
+        \{p29=A, p30=G, p31=G\} & 47.5\% & 2.8\% & 16.7 \\ \hline
+        \{p25=C, p29=A, p30=G\} & 46.2\% & 1.4\% & 33.3 \\ \hline
+        \{p21=T, p29=A, p30=G\} & 45.3\% & 1.5\% & 31.2 \\ \hline
+    \end{tabular}
+    }
+\end{table}
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{../data/results/app2_splice/position_freq.png}
+    \caption{Tần suất của từng nucleotide tại từng vị trí trong ba lớp EI, IE và N. Đường nét đứt đánh dấu ranh giới giữa vị trí 30 và 31}
+    \label{fig:splice_freq}
+\end{figure*}
+
+Từ Bảng \ref{tab:splice_patterns} và Hình \ref{fig:splice_freq}, ta có các nhận xét như sau:
+\begin{itemize}
+    \item Lớp EI: tập $\{p31{=}G, p32{=}T\}$ xuất hiện trong $99.0\%$ đoạn EI nhưng chỉ $5.9\%$ đoạn N, xấp xỉ mức ngẫu nhiên $1/16 = 6.25\%$. Đây chính là quy tắc GT-AG \cite{mount1982catalogue}: intron luôn bắt đầu bằng GT. Các tập dài hơn quanh điểm nối như $\{p30{=}G, p31{=}G, p32{=}T, p34{=}A, p35{=}G\}$ ($47.3\%$ trong EI, không xuất hiện trong N) khớp với trình tự đồng thuận (\textit{consensus sequence}) của donor site là MAG|GTRAGT \cite{mount1982catalogue}, trong đó M là A hoặc C, R là A hoặc G. Hai vị trí 28 (M) và 33 (R) bị chia support giữa hai nucleotide (vị trí 33: A chiếm $49.3\%$, G chiếm $46.4\%$) nên ít xuất hiện trong các tập phổ biến dài.
+    \item Lớp IE: tập $\{p29{=}A, p30{=}G\}$ xuất hiện trong $99.5\%$ đoạn IE, tức intron luôn kết thúc bằng AG, vế còn lại của quy tắc GT-AG. Tập $\{p28{=}C, p29{=}A, p30{=}G\}$ ($78.8\%$) cùng item $p31{=}G$ ($47.5\%$) cho thấy trình tự đồng thuận CAG|G của acceptor site. Ngoài ra, nhiều tập dạng $\{pK{=}C \text{ hoặc } T, p29{=}A, p30{=}G\}$ với $K$ từ $18$ đến $26$ đạt support khoảng $42\%$ đến $46\%$ và $GR$ từ $25$ đến $31$: phía trước AG là một vùng giàu C và T (\textit{polypyrimidine tract}). Vùng này có độ dài và vị trí thay đổi giữa các đoạn nên support bị trải đều ra nhiều vị trí, thay vì tập trung như GT và AG.
+    \item Tập phổ biến càng dài thì support càng giảm nhưng độ tăng trưởng tăng mạnh: $\{p31{=}G, p32{=}T\}$ có $GR = 16.7$, còn $\{p31{=}G, p32{=}T, p34{=}A, p35{=}G\}$ có $GR = 1055.1$. Do cặp GT xuất hiện ngẫu nhiên khá thường xuyên trong DNA, chỉ các mẫu dài mới đủ để phân biệt điểm nối thật với các vị trí khác.
+\end{itemize}
+
+Qua các kết quả trên, các mẫu tìm được có thể được ứng dụng như sau:
+\begin{enumerate}
+    \item Chú giải gen: các mẫu là ``chữ ký'' giúp xác định ranh giới exon/intron khi phân tích một chuỗi DNA mới.
+    \item Đặc trưng cho mô hình phân loại: mỗi tập phổ biến có độ tăng trưởng cao là một đặc trưng nhị phân (đoạn DNA có chứa mẫu hay không) để huấn luyện mô hình phân loại EI/IE/N như bài toán gốc của tập dữ liệu \cite{noordewier1991training}. Các đặc trưng này dễ giải thích hơn so với đầu vào là chuỗi nucleotide thô.
+    \item Phân tích đột biến: đột biến làm mất các mẫu trên tại điểm nối có thể khiến tế bào cắt nối sai, do đó các vị trí thuộc mẫu là vùng cần ưu tiên kiểm tra khi phân tích đột biến.
+\end{enumerate}
+
+Tuy nhiên, cách mã hóa (vị trí, nucleotide) còn một số hạn chế: item gắn với vị trí cố định nên không phát hiện được các mẫu bị dịch vị trí giữa các đoạn như vùng giàu C/T ở trên, và các vị trí cho phép nhiều nucleotide (M, R) bị chia nhỏ support. Có thể khắc phục hạn chế thứ hai bằng cách bổ sung item theo nhóm nucleotide, ví dụ $pK{=}R$ (A hoặc G) và $pK{=}Y$ (C hoặc T).
 
 \begin{thebibliography}{9}
 
@@ -341,6 +401,12 @@ Karolien Geurts, Geert Wets, Tom Brijs, and Koen Vanhoof. 2003. Profiling of Hig
 
 \bibitem{uci1998repository}
 Markelle Kelly, Rachel Longjohn, and Kolby Nottingham. The UCI Machine Learning Repository. https://archive.ics.uci.edu.
+
+\bibitem{noordewier1991training}
+Michiel O. Noordewier, Geoffrey G. Towell, and Jude W. Shavlik. 1991. Training Knowledge-Based Neural Networks to Recognize Genes in DNA Sequences. In \textit{Advances in Neural Information Processing Systems 3 (NIPS)}, 530--536.
+
+\bibitem{mount1982catalogue}
+Stephen M. Mount. 1982. A catalogue of splice junction sequences. \textit{Nucleic Acids Research}, 10(2), 459--472.
 
 \end{thebibliography}
 
