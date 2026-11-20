@@ -1,0 +1,235 @@
+Antecedent,Consequent,Support,Confidence_Pct,Lift
+"{citrus fruit, other vegetables}","{root vegetables}",102,35.92,3.30
+"{other vegetables, yogurt}","{whipped/sour cream}",100,23.42,3.27
+"{other vegetables, tropical fruit}","{root vegetables}",121,34.28,3.14
+"{beef}","{root vegetables}",171,33.14,3.04
+"{citrus fruit, root vegetables}","{other vegetables}",102,58.62,3.03
+"{root vegetables, tropical fruit}","{other vegetables}",121,58.45,3.02
+"{root vegetables}","{other vegetables, whole milk}",228,21.27,2.84
+"{other vegetables, whole milk}","{root vegetables}",228,30.98,2.84
+"{butter}","{other vegetables, whole milk}",113,20.73,2.77
+"{curd, whole milk}","{yogurt}",99,38.52,2.76
+"{whipped/sour cream}","{other vegetables, whole milk}",144,20.43,2.73
+"{other vegetables, yogurt}","{root vegetables}",127,29.74,2.73
+"{other vegetables, yogurt}","{tropical fruit}",121,28.34,2.70
+"{other vegetables, root vegetables}","{citrus fruit}",102,21.89,2.64
+"{other vegetables, rolls/buns}","{root vegetables}",120,28.64,2.63
+"{tropical fruit, whole milk}","{root vegetables}",118,28.37,2.60
+"{rolls/buns, root vegetables}","{other vegetables}",120,50.21,2.59
+"{root vegetables, yogurt}","{other vegetables}",127,50.00,2.58
+"{whole milk, yogurt}","{tropical fruit}",149,27.04,2.58
+"{pip fruit}","{tropical fruit}",201,27.02,2.57
+"{tropical fruit, whole milk}","{yogurt}",149,35.82,2.57
+"{whipped/sour cream, yogurt}","{other vegetables}",100,49.02,2.53
+"{other vegetables, whipped/sour cream}","{yogurt}",100,35.21,2.52
+"{other vegetables, root vegetables}","{tropical fruit}",121,25.97,2.47
+"{other vegetables, tropical fruit}","{yogurt}",121,34.28,2.46
+"{root vegetables, whole milk}","{other vegetables}",228,47.40,2.45
+"{whipped/sour cream, whole milk}","{yogurt}",107,33.75,2.42
+"{citrus fruit, whole milk}","{yogurt}",101,33.67,2.41
+"{whole milk, yogurt}","{root vegetables}",143,25.95,2.38
+"{onions}","{other vegetables}",140,45.90,2.37
+"{pork, whole milk}","{other vegetables}",100,45.87,2.37
+"{whipped/sour cream, whole milk}","{other vegetables}",144,45.43,2.35
+"{root vegetables, whole milk}","{tropical fruit}",118,24.53,2.34
+"{chicken}","{root vegetables}",107,25.36,2.33
+"{curd}","{yogurt}",170,32.44,2.33
+"{pip fruit, whole milk}","{other vegetables}",133,44.93,2.32
+"{citrus fruit}","{tropical fruit}",196,24.08,2.29
+"{berries}","{yogurt}",104,31.80,2.28
+"{curd, yogurt}","{whole milk}",99,58.24,2.28
+"{other vegetables}","{root vegetables}",466,24.49,2.25
+"{root vegetables}","{other vegetables}",466,43.47,2.25
+"{butter, other vegetables}","{whole milk}",113,57.36,2.24
+"{cream cheese}","{yogurt}",122,31.28,2.24
+"{root vegetables, tropical fruit}","{whole milk}",118,57.00,2.23
+"{frozen vegetables}","{root vegetables}",114,24.10,2.21
+"{citrus fruit, whole milk}","{other vegetables}",128,42.67,2.21
+"{root vegetables, yogurt}","{whole milk}",143,56.30,2.20
+"{whipped/sour cream}","{root vegetables}",168,23.83,2.19
+"{other vegetables, whole milk}","{tropical fruit}",168,22.83,2.18
+"{tropical fruit, yogurt}","{other vegetables}",121,42.01,2.17
+"{pork}","{root vegetables}",134,23.63,2.17
+"{domestic eggs, other vegetables}","{whole milk}",121,55.25,2.16
+"{chicken}","{other vegetables}",176,41.71,2.16
+"{butter, whole milk}","{other vegetables}",113,41.70,2.15
+"{hamburger meat}","{other vegetables}",136,41.59,2.15
+"{butter}","{root vegetables}",127,23.30,2.14
+"{other vegetables, whole milk}","{yogurt}",219,29.76,2.13
+"{root vegetables, whole milk}","{yogurt}",143,29.73,2.13
+"{domestic eggs, whole milk}","{other vegetables}",121,41.02,2.12
+"{tropical fruit, whole milk}","{other vegetables}",168,40.38,2.09
+"{whipped/sour cream}","{other vegetables}",284,40.28,2.08
+"{whipped/sour cream}","{yogurt}",204,28.94,2.07
+"{domestic eggs}","{root vegetables}",141,22.60,2.07
+"{rolls/buns, whole milk}","{root vegetables}",125,22.44,2.06
+"{whole milk, yogurt}","{other vegetables}",219,39.75,2.05
+"{whipped/sour cream, yogurt}","{whole milk}",107,52.45,2.05
+"{rolls/buns, root vegetables}","{whole milk}",125,52.30,2.05
+"{fruit/vegetable juice, whole milk}","{other vegetables}",103,39.31,2.03
+"{other vegetables, pip fruit}","{whole milk}",133,51.75,2.03
+"{tropical fruit, yogurt}","{whole milk}",149,51.74,2.02
+"{other vegetables, yogurt}","{whole milk}",219,51.29,2.01
+"{tropical fruit}","{yogurt}",288,27.91,2.00
+"{yogurt}","{tropical fruit}",288,20.99,2.00
+"{other vegetables, whipped/sour cream}","{whole milk}",144,50.70,1.98
+"{rolls/buns, whole milk}","{yogurt}",153,27.47,1.97
+"{citrus fruit}","{root vegetables}",174,21.38,1.96
+"{other vegetables, root vegetables}","{yogurt}",127,27.25,1.95
+"{fruit/vegetable juice, other vegetables}","{whole milk}",103,49.76,1.95
+"{butter}","{whole milk}",271,49.72,1.95
+"{beef}","{other vegetables}",194,37.60,1.94
+"{pork}","{other vegetables}",213,37.57,1.94
+"{other vegetables, rolls/buns}","{yogurt}",113,26.97,1.93
+"{curd}","{whole milk}",257,49.05,1.92
+"{butter milk}","{other vegetables}",102,37.09,1.92
+"{other vegetables, root vegetables}","{whole milk}",228,48.93,1.91
+"{frozen vegetables}","{other vegetables}",175,37.00,1.91
+"{butter}","{yogurt}",144,26.42,1.89
+"{pip fruit}","{root vegetables}",153,20.56,1.89
+"{citrus fruit}","{yogurt}",213,26.17,1.88
+"{soda, whole milk}","{yogurt}",103,26.14,1.87
+"{curd}","{root vegetables}",107,20.42,1.87
+"{butter}","{other vegetables}",197,36.15,1.87
+"{other vegetables, tropical fruit}","{whole milk}",168,47.59,1.86
+"{citrus fruit, yogurt}","{whole milk}",101,47.42,1.86
+"{fruit/vegetable juice}","{yogurt}",184,25.88,1.86
+"{domestic eggs}","{whole milk}",295,47.28,1.85
+"{frozen vegetables}","{yogurt}",122,25.79,1.85
+"{tropical fruit}","{root vegetables}",207,20.06,1.84
+"{other vegetables, pork}","{whole milk}",100,46.95,1.84
+"{other vegetables, pastry}","{whole milk}",104,46.85,1.83
+"{domestic eggs}","{other vegetables}",219,35.10,1.81
+"{citrus fruit}","{other vegetables}",284,34.89,1.80
+"{soda, whole milk}","{other vegetables}",137,34.77,1.80
+"{cream cheese}","{other vegetables}",135,34.62,1.79
+"{pip fruit}","{other vegetables}",257,34.54,1.79
+"{frankfurter}","{rolls/buns}",189,32.59,1.77
+"{rolls/buns, yogurt}","{whole milk}",153,45.27,1.77
+"{sausage}","{rolls/buns}",301,32.58,1.77
+"{tropical fruit}","{other vegetables}",353,34.21,1.77
+"{citrus fruit, other vegetables}","{whole milk}",128,45.07,1.76
+"{whipped/sour cream}","{whole milk}",317,44.96,1.76
+"{sausage, whole milk}","{other vegetables}",100,34.01,1.76
+"{root vegetables}","{whole milk}",481,44.87,1.76
+"{rolls/buns, tropical fruit}","{whole milk}",108,44.63,1.75
+"{margarine}","{yogurt}",140,24.31,1.74
+"{margarine}","{other vegetables}",194,33.68,1.74
+"{sugar}","{whole milk}",148,44.44,1.74
+"{hamburger meat}","{whole milk}",145,44.34,1.74
+"{rolls/buns, yogurt}","{other vegetables}",113,33.43,1.73
+"{ham}","{whole milk}",113,44.14,1.73
+"{sliced cheese}","{whole milk}",106,43.98,1.72
+"{pip fruit}","{yogurt}",177,23.79,1.71
+"{bottled water, other vegetables}","{whole milk}",106,43.44,1.70
+"{root vegetables}","{yogurt}",254,23.69,1.70
+"{white bread}","{other vegetables}",135,32.61,1.69
+"{napkins}","{yogurt}",121,23.50,1.68
+"{curd}","{other vegetables}",169,32.25,1.67
+"{other vegetables, soda}","{whole milk}",137,42.55,1.67
+"{frozen vegetables}","{whole milk}",201,42.49,1.66
+"{sugar}","{other vegetables}",106,31.83,1.65
+"{other vegetables, rolls/buns}","{whole milk}",176,42.00,1.64
+"{pastry, whole milk}","{other vegetables}",104,31.80,1.64
+"{rolls/buns, whole milk}","{other vegetables}",176,31.60,1.63
+"{cream cheese}","{whole milk}",162,41.54,1.63
+"{butter milk}","{whole milk}",114,41.45,1.62
+"{bottled water, whole milk}","{other vegetables}",106,31.36,1.62
+"{domestic eggs}","{yogurt}",141,22.60,1.62
+"{margarine}","{whole milk}",238,41.32,1.62
+"{dessert}","{other vegetables}",114,31.23,1.61
+"{yogurt}","{other vegetables}",427,31.12,1.61
+"{other vegetables}","{yogurt}",427,22.44,1.61
+"{hard cheese}","{whole milk}",99,41.08,1.61
+"{brown bread}","{yogurt}",143,22.41,1.61
+"{chicken}","{whole milk}",173,41.00,1.60
+"{beef}","{yogurt}",115,22.29,1.60
+"{berries}","{other vegetables}",101,30.89,1.60
+"{white bread}","{whole milk}",168,40.58,1.59
+"{beef}","{whole milk}",209,40.50,1.59
+"{tropical fruit}","{whole milk}",416,40.31,1.58
+"{oil}","{whole milk}",111,40.22,1.57
+"{yogurt}","{whole milk}",551,40.16,1.57
+"{whole milk}","{yogurt}",551,21.93,1.57
+"{chocolate}","{soda}",133,27.25,1.56
+"{pip fruit}","{whole milk}",296,39.78,1.56
+"{onions}","{whole milk}",119,39.02,1.53
+"{hygiene articles}","{whole milk}",126,38.89,1.52
+"{brown bread}","{whole milk}",248,38.87,1.52
+"{whole milk}","{other vegetables}",736,29.29,1.51
+"{other vegetables}","{whole milk}",736,38.68,1.51
+"{whole milk, yogurt}","{rolls/buns}",153,27.77,1.51
+"{pork}","{whole milk}",218,38.45,1.50
+"{fruit/vegetable juice}","{other vegetables}",207,29.11,1.50
+"{bottled water}","{soda}",285,26.22,1.50
+"{soda, yogurt}","{whole milk}",103,38.29,1.50
+"{sausage}","{yogurt}",193,20.89,1.50
+"{brown bread}","{other vegetables}",184,28.84,1.49
+"{bottled water}","{yogurt}",226,20.79,1.49
+"{sausage}","{soda}",239,25.87,1.48
+"{sausage}","{other vegetables}",265,28.68,1.48
+"{other vegetables, sausage}","{whole milk}",100,37.74,1.48
+"{long life bakery product}","{other vegetables}",105,28.53,1.47
+"{napkins}","{whole milk}",194,37.67,1.47
+"{salty snack}","{other vegetables}",106,28.49,1.47
+"{pastry}","{whole milk}",327,37.37,1.46
+"{fruit/vegetable juice}","{soda}",181,25.46,1.46
+"{dessert}","{whole milk}",135,36.99,1.45
+"{frankfurter}","{other vegetables}",162,27.93,1.44
+"{citrus fruit}","{whole milk}",300,36.86,1.44
+"{fruit/vegetable juice}","{whole milk}",262,36.85,1.44
+"{other vegetables, yogurt}","{rolls/buns}",113,26.46,1.44
+"{shopping bags}","{soda}",242,24.97,1.43
+"{napkins}","{other vegetables}",142,27.57,1.43
+"{long life bakery product}","{whole milk}",133,36.14,1.41
+"{root vegetables, whole milk}","{rolls/buns}",125,25.99,1.41
+"{beef}","{rolls/buns}",134,25.97,1.41
+"{tropical fruit, whole milk}","{rolls/buns}",108,25.96,1.41
+"{other vegetables, root vegetables}","{rolls/buns}",120,25.75,1.40
+"{white bread}","{soda}",101,24.40,1.40
+"{berries}","{whole milk}",116,35.47,1.39
+"{margarine}","{rolls/buns}",145,25.17,1.37
+"{frankfurter}","{whole milk}",202,34.83,1.36
+"{pastry}","{soda}",207,23.66,1.36
+"{waffles}","{other vegetables}",99,26.19,1.35
+"{newspapers}","{rolls/buns}",194,24.71,1.34
+"{domestic eggs}","{rolls/buns}",154,24.68,1.34
+"{newspapers}","{whole milk}",269,34.27,1.34
+"{yogurt}","{rolls/buns}",338,24.64,1.34
+"{chocolate}","{other vegetables}",125,25.61,1.32
+"{butter}","{rolls/buns}",132,24.22,1.32
+"{chocolate}","{whole milk}",164,33.61,1.32
+"{napkins}","{soda}",118,22.91,1.31
+"{pastry}","{other vegetables}",222,25.37,1.31
+"{other vegetables, whole milk}","{rolls/buns}",176,23.91,1.30
+"{waffles}","{whole milk}",125,33.07,1.29
+"{chocolate}","{rolls/buns}",116,23.77,1.29
+"{pastry}","{rolls/buns}",206,23.54,1.28
+"{tropical fruit}","{rolls/buns}",242,23.45,1.27
+"{coffee}","{whole milk}",184,32.22,1.26
+"{newspapers}","{other vegetables}",190,24.20,1.25
+"{sausage}","{whole milk}",294,31.82,1.25
+"{bottled water}","{whole milk}",338,31.09,1.22
+"{shopping bags}","{other vegetables}",228,23.53,1.22
+"{napkins}","{rolls/buns}",115,22.33,1.21
+"{root vegetables}","{rolls/buns}",239,22.29,1.21
+"{bottled beer}","{soda}",167,21.09,1.21
+"{whole milk}","{rolls/buns}",557,22.16,1.21
+"{rolls/buns}","{whole milk}",557,30.79,1.21
+"{rolls/buns}","{other vegetables}",419,23.16,1.20
+"{other vegetables}","{rolls/buns}",419,22.02,1.20
+"{soda}","{rolls/buns}",377,21.98,1.20
+"{rolls/buns}","{soda}",377,20.84,1.20
+"{coffee}","{other vegetables}",132,23.12,1.19
+"{bottled water}","{rolls/buns}",238,21.90,1.19
+"{pork}","{soda}",117,20.63,1.18
+"{bottled water}","{other vegetables}",244,22.45,1.16
+"{salty snack}","{whole milk}",110,29.57,1.16
+"{frozen vegetables}","{rolls/buns}",100,21.14,1.15
+"{whipped/sour cream}","{rolls/buns}",144,20.43,1.11
+"{citrus fruit}","{rolls/buns}",165,20.27,1.10
+"{fruit/vegetable juice}","{rolls/buns}",143,20.11,1.09
+"{bottled beer}","{other vegetables}",159,20.08,1.04
+"{bottled beer}","{whole milk}",201,25.38,0.99
+"{shopping bags}","{whole milk}",241,24.87,0.97
+"{soda}","{whole milk}",394,22.97,0.90

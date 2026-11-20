@@ -2,6 +2,8 @@ data/benchmark
 data/my_opt_outputs
 data/my_outputs
 data/spmf_outputs
+data/market_basket
+data/splice
 *.cov
 .vscode/
 *.aux
@@ -15,6 +17,3 @@ data/spmf_outputs
 *.bbl
 *.blg
 venv
-
-# app2 splice-junction: dữ liệu tải về và file mã hóa (tạo lại bằng demo notebook)
-data/splice

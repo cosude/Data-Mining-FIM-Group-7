@@ -1,16 +1,36 @@
 using Printf
 using Combinatorics
+using ArgParse
 
 include(joinpath(@__DIR__, "..", "src", "FPGrowth.jl"))
 using .FPGrowth
+
+function parse_commandline()
+    s = ArgParseSettings()
+    @add_arg_table! s begin
+        "--minsup", "-s"
+            help = "Minimum support (relative in (0, 1] or absolute integer count > 1)"
+            arg_type = Float64
+            default = 0.01
+        "--minconf", "-c"
+            help = "Minimum confidence in [0, 1]"
+            arg_type = Float64
+            default = 0.2
+        "--top", "-k"
+            help = "Number of top rules to display"
+            arg_type = Int
+            default = 10
+    end
+    return parse_args(s)
+end
 
 function load_mapping(filepath::String)
     mapping = Dict{Int, String}()
     lines = readlines(filepath)[2:end]
     for line in lines
-        parts = split(line, ",")
+        parts = split(strip(line), ",")
         if length(parts) == 2
-            mapping[parse(Int, parts[1])] = parts[2]
+            mapping[parse(Int, parts[1])] = String(parts[2])
         end
     end
     return mapping
@@ -46,30 +66,50 @@ function generate_association_rules(itemsets, total_trans, minconf)
 end
 
 function main()
-    println("Mining frequent itemsets...")
-    db = read_spmf("encoded_groceries.txt")
-    mapping = load_mapping("mapping.csv")
+    args = parse_commandline()
+    minsup_arg = args["minsup"]
+    minconf    = args["minconf"]
+    top_k      = args["top"]
+
+    root_dir = joinpath(@__DIR__, "..")
+    data_dir = joinpath(root_dir, "data", "market_basket")
+    out_dir  = joinpath(root_dir, "data", "results", "app1_market_basket")
+    mkpath(out_dir)
+
+    println("Mining frequent itemsets (minsup = $minsup_arg, minconf = $minconf)...")
+    db = read_spmf(joinpath(data_dir, "encoded_groceries.txt"))
+    mapping = load_mapping(joinpath(data_dir, "mapping.csv"))
     total_trans = length(db)
     
-    minsup_count = minsup_to_count(0.01, total_trans)
-    
+    minsup_count = minsup_arg <= 1.0 ? minsup_to_count(minsup_arg, total_trans) : round(Int, minsup_arg)
     itemsets = fpgrowth(OptFPTree, db, minsup_count)
+    rules = generate_association_rules(itemsets, total_trans, minconf)
     
-    rules = generate_association_rules(itemsets, total_trans, 0.2)
-    
-    println("\n--- TOP 10 ASSOCIATION RULES (Based on Lift) ---")
+    # Print Top K to terminal
+    k = min(top_k, length(rules))
+    println("\n--- TOP $k ASSOCIATION RULES (Based on Lift) ---")
     @printf "%-50s | %-8s | %-8s | %-6s\n" "Rule (X -> Y)" "Support" "Conf(%)" "Lift"
     println("-"^80)
     
-    for i in 1:min(10, length(rules))
+    for i in 1:k
         X, Y, sup, conf, lift = rules[i]
-        
-        str_X = join([mapping[item] for item in X], ", ")
-        str_Y = join([mapping[item] for item in Y], ", ")
+        str_X = join(sort([mapping[item] for item in X]), ", ")
+        str_Y = join(sort([mapping[item] for item in Y]), ", ")
         rule_str = "{$str_X} => {$str_Y}"
-        
         @printf "%-50s | %-8d | %-8.2f | %-6.2f\n" rule_str sup (conf * 100) lift
     end
+
+    # Save all rules to CSV
+    out_csv = joinpath(out_dir, "association_rules.csv")
+    open(out_csv, "w") do io
+        println(io, "Antecedent,Consequent,Support,Confidence_Pct,Lift")
+        for (X, Y, sup, conf, lift) in rules
+            str_X = join(sort([mapping[item] for item in X]), ", ")
+            str_Y = join(sort([mapping[item] for item in Y]), ", ")
+            @printf io "\"{%s}\",\"{%s}\",%d,%.2f,%.2f\n" str_X str_Y sup (conf * 100) lift
+        end
+    end
+    println("\nSaved $(length(rules)) rules to: $out_csv")
 end
 
 main()

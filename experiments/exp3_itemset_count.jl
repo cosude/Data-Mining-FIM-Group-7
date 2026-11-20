@@ -35,7 +35,7 @@ function run_itemset_count_experiment()
             for minsup in minsups
                 min_count = minsup_to_count(minsup, length(db))
                 
-                itemsets = fpgrowth(OptFPTree, db, min_count)
+                itemsets = fpgrowth(FPTree, db, min_count)
                 count = length(itemsets)
                 
                 @printf " - Minsup = %5.3f | Output Size: %10d itemsets\n" minsup count

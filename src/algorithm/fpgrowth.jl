@@ -147,74 +147,83 @@ function _fpgrowth_step!(
     ξ::Int, 
     results::Vector{Tuple{Vector{Int}, Int}}
 )
-    # Optimize by checking for single prefix path
-    is_single_path = true
-    current = tree.root
+    # Split the tree into a single prefix-path part P and a multipath part Q
+    branch_node = tree.root
     path_nodes = OptFPNode[]
     
-    while !isempty(current.children)
-        # If the node has more than one child, its no longer a single path
-        if length(current.children) > 1
-            is_single_path = false
-            break
-        end
-        # Move to the single child, push it to the path
-        current = first(values(current.children))
-        push!(path_nodes, current)
+    while length(branch_node.children) == 1 # When the considering node has only one child, the child belongs to P
+        branch_node = first(values(branch_node.children)) # Move to the child node
+        push!(path_nodes, branch_node) # Add the node P
     end
 
-    if is_single_path
-        n = length(path_nodes)
-        # Using bitwise to generate combinations:
-        for i in 1:(2^n - 1) # Looping from 1 -> 2^n - 1, each iter is a unique bit mask, ex: n = 5, i = 12 => mask = 01100
-            β = copy(α)
-            min_sup_beta = typemax(Int)
-            
+    # Mine patterns in P
+    n = length(path_nodes)
+    p_subsets = Vector{Tuple{Vector{Int}, Int}}() # this will containt set of frequent patterns found in P
+    # Using bitwise to generate combinations
+    if n > 0
+        sizehint!(p_subsets, (1 << n) - 1) # (1 << n) - 1 simply is 2^n - 1, which is the number of combinations
+        for i in 1:((1 << n) - 1) # Looping from 1 -> 2^n - 1, each iter is a unique bit mask, ex: n = 5, i = 12 => mask = 01100
+            subset = Int[]
+            min_sup = typemax(Int)
             for j in 1:n # Looping through the bits of i
                 if (i & (1 << (j - 1))) != 0 # Checking if the mask's j-1th right-to-left bit is 1 => the mask includes the j item, otherwise exclude it
-                    push!(β, path_nodes[j].item_name)
-                    min_sup_beta = min(min_sup_beta, path_nodes[j].count) # Update min sup
+                    push!(subset, path_nodes[j].item_name)
+                    min_sup = min(min_sup, path_nodes[j].count) # Update min sup
                 end
             end
-            push!(results, (β, min_sup_beta))
+            push!(p_subsets, (subset, min_sup))
+            push!(results, (vcat(α, subset), min_sup))
         end
-        return # Skip recursion
     end
 
-    # Optimize by sort header table entries ascending once
-    sorted_items = sort(collect(keys(tree.header_table)), by = x -> tree.header_table[x].support)
+    # When the last node of the single prefix path has no children, the tree has no multipath part Q => return
+    isempty(branch_node.children) && return
+
+    # Mining multipath Q
+    # If P is non-empty, collect Q's patterns separately so we can compute P × Q without duplicating α.
+    # If P is empty, write directly to `results` with `α` to avoid extra allocations.
+    has_prefix = (n > 0)
+    p_items_set = has_prefix ? Set(node.item_name for node in path_nodes) : Set{Int}()
+    q_results   = has_prefix ? Tuple{Vector{Int}, Int}[] : results
+    q_suffix    = has_prefix ? Int[] : α
+
+    # Sort header table entries ascending once
+    sorted_items = sort(
+        [k for k in keys(tree.header_table) if !(k in p_items_set)],
+        by = x -> tree.header_table[x].support
+    )
     
     for item in sorted_items
         entry = tree.header_table[item]
         beta_support = entry.support
         
-        β = copy(α)
+        # Generate pattern β = a_i ∪ q_suffix
+        β = copy(q_suffix)
         push!(β, item)
-        push!(results, (β, beta_support))
+        push!(q_results, (β, beta_support))
         
+        # Construct β's conditional pattern base within Q (stop at branch_node)
         cond_pattern_base = Vector{Int}[]
         cond_counts = Int[]
         
-        for node in entry.nodes # Looping through every nodes of the item from the header table entry
+        for node in entry.nodes
             prefix_path = Int[]
             parent = node.parent
             
-            # Traverse to root
-            while parent !== nothing && parent.item_name !== nothing
+            while parent !== nothing && parent !== branch_node && parent.item_name !== nothing
                 push!(prefix_path, parent.item_name)
                 parent = parent.parent
             end
             
             if !isempty(prefix_path)
-                reverse!(prefix_path) # Reverse the path (since traveled backwards)
+                reverse!(prefix_path)
                 push!(cond_pattern_base, prefix_path)
-                push!(cond_counts, node.count) # The path's support is its last node's support
+                push!(cond_counts, node.count)
             end
         end
         
         isempty(cond_pattern_base) && continue
         
-        # Checking support (frequency) of each items in all the paths found
         local_support = Dict{Int, Int}()
         for (i, path) in enumerate(cond_pattern_base)
             count_i = cond_counts[i]
@@ -223,19 +232,15 @@ function _fpgrowth_step!(
             end
         end
         
-        # Sort them
         freq_items = [k for (k, v) in local_support if v >= ξ]
         isempty(freq_items) && continue
         sort!(freq_items, by = k -> (-local_support[k], k))
         
-        # Initialize the conditional fptree
         cond_header = build_opt_header_table(freq_items, local_support)
         cond_tree = OptFPTree(cond_header)
         
-        # Build the conditional fptree
         for (i, path) in enumerate(cond_pattern_base)
             filtered_path = Int[]
-            # Maintain the order of new frequent items
             for fi in freq_items
                 if fi in path
                     push!(filtered_path, fi)
@@ -247,8 +252,18 @@ function _fpgrowth_step!(
             end
         end
         
-        # Recursion
-        _fpgrowth_step!(cond_tree, β, ξ, results)
+        # Recursively mine Tree_β into q_results
+        _fpgrowth_step!(cond_tree, β, ξ, q_results)
+    end
+
+    # Emit freq_pattern_set(Q) ∪ (freq_pattern_set(P) × freq_pattern_set(Q))
+    if has_prefix
+        for (q_items, q_sup) in q_results
+            push!(results, (vcat(α, q_items), q_sup))
+            for (p_items, _) in p_subsets
+                push!(results, (vcat(α, p_items, q_items), q_sup))
+            end
+        end
     end
 end
 

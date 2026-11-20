@@ -12,6 +12,9 @@
 \usepackage{xcolor}
 \usepackage{booktabs}
 \usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{subcaption}
+
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em 
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -92,6 +95,7 @@ Quá trình chèn một giao dịch \texttt{Trans} vào cây tiêu tốn thời 
 \label{subsec:fp-growth}
 
 \subsection{Các kỹ thuật tối ưu hóa bộ nhớ và tốc độ cho giải thuật FP-growth}
+\label{subsec:optimization}
 \textbf{Tối ưu cấu trúc dữ liệu:}
 Trong cấu trúc FP-tree cơ bản, mỗi dòng trong Header Table theo dõi các nút cùng nhãn item tương ứng qua node-link, tức danh sách liên kết. Do đó, trong quá trình khai thác tập phổ biến, việc duyệt các nút qua node-link gặp phải vấn đề truy cập bộ nhớ rời rạc dẫn đến việc trượt bộ nhớ đệm. Một thí nghiệm vào năm 2007 \cite{liu2007optimization} cho thấy FP-growth có tỉ lệ trượt bộ nhớ đệm L3 rất cao, lên đến $1\%$ tất cả dữ liệu. Để giải quyết vấn đề này, danh sách liên kết được thay thế bởi một mảng liên tục \texttt{nodes::Vector\{OptFPNode\}} đặt bên trong \texttt{OptHeaderTableEntry}. Cải tiến này giữ nguyên chi phí chèn $\mathcal{O}(1)$, nhưng giúp quá trình duyệt ngược khi khai thác được diễn ra tuần tự trên vùng nhớ vật lý. Nhờ đó, CPU có thể tận dụng cơ chế nạp trước dữ liệu để gọi nhiều nút cùng lúc, tăng tốc độ truy xuất.
 
@@ -101,11 +105,11 @@ Cài đặt cơ bản chèn các item trong giao dịch sử dụng đệ quy. V
 \textbf{Tái sử dụng vùng nhớ bằng BitArray:}
 Ở lượt duyệt CSDL lần hai, thao tác lọc và sắp xếp các item phổ biến ở cài đặt cơ bản khởi tạo cấu trúc \texttt{Set} mới ứng với mỗi giao dịch xét. Ta có thể tối ưu bằng cách sử dụng một mảng nhị phân (BitArray) chia sẻ chung cho các giao dịch. Các bit tương ứng với item trong giao dịch được bật lên để lọc tuần tự theo F-List, sau đó được tắt đi để tái sử dụng cho giao dịch tiếp theo mà không cần cấp phát thêm bộ nhớ.
 
-\textbf{Tỉa nhánh sớm với đường dẫn đơn:}
-Khi khai thác conditional FP-tree, rất nhiều trường hợp cây thu hẹp lại thành một đường thẳng duy nhất (single-prefix path). Thay vì tiếp tục gọi đệ quy lãng phí để dựng các cây con nhỏ hơn, ta có thể sử dụng cơ chế phát hiện và ngắt đệ quy sớm. Để tạo các tổ hợp từ đường đi đơn, ta có thể sử dụng các toán tử trên bit để tạo đủ $2^n - 1$ tổ hợp từ $n$ nút trên nhánh đơn này. Qua đó kỹ thuật này giúp giảm chi phí xây conditional tree, đặc biệt đối với các tập dữ liệu dày đặc như \textit{chess} hay \textit{mushroom}.
+\textbf{Sử dụng single-prefix path:}
+Ở cài đặt cơ bản, thuật toán kiểm tra FP-tree có hoàn toàn là đường đi đơn không (single path) nhằm khai thác trực tiếp các tổ hợp của các item trên đường đi đó thay vì gọi đệ quy. Để khai thác kỹ thuật này một cách tối đa, ta có thể tách FP-tree cũng như các conditional FP-tree thành hai phần: đường tiền tố đơn $P$ và phần đa nhánh còn lại $Q$. Sau khi khai thác trực tiếp các tổ hợp item trên $P$, ta tiếp tục khai thác $Q$ với nút gốc của $Q$ (tức nút cuối của $P$) xem như rỗng. Các tập phổ biến thu được sẽ có dạng tích Descartes $P \times Q$. Phương pháp tối ưu này được chính tác giả của bài báo gốc cải tiến vào năm 2004 \cite{han2004mining}, tức 4 năm sau khi bài báo gốc được xuất bản. 
 
 \subsection{Kết quả so sánh cài đặt tối ưu và cơ bản}
-Khi chạy kiểm thử hai cài đặt trên trong môi trường Google Colab trên $5$ cơ sở dữ liệu ở ~\ref{subsec:environment-datasets}, cài đặt tối ưu có thời gian chạy nhanh hơn khoảng $1.57$ lần và tiết kiệm bộ nhớ khoảng $2.32$ lần so với cài đặt cơ bản.
+Khi chạy kiểm thử hai cài đặt trên trong môi trường Google Colab và $5$ cơ sở dữ liệu ở ~\ref{subsec:environment-datasets}, cài đặt tối ưu có thời gian chạy nhanh hơn khoảng $1.68$ lần và tiết kiệm bộ nhớ khoảng $2.81$ lần so với cài đặt cơ bản.
 
 \section{Chương 2: Thực nghiệm và đánh giá}
 
@@ -120,20 +124,22 @@ Các thí nghiệm đều được chạy trên 5 tập dữ liệu benchmark ph
 \centering
 \caption{Thống kê các tập dữ liệu benchmark được sử dụng \cite{fournierviger2014spmf}}
 \label{tab:datasets}
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.15}
 \resizebox{\columnwidth}{!}{
-\begin{tabular}{|l|r|r|c|p{3.5cm}|}
+\begin{tabular}{|l|r|r|c|p{2.6cm}|}
 \hline
-\textbf{Dữ liệu} & \textbf{Giao dịch} & \textbf{Items} (I) & \textbf{Chiều rộng TB (A)} & \textbf{Đặc điểm} và Mật độ (A/I) \\
+\textbf{Dữ liệu} & \textbf{Giao dịch} & \textbf{Items} & \textbf{Độ dài} & \textbf{\& Mật độ ($A/I$)} \\
 \hline
-Chess & 3.196 & 75 & 37.0 & Dữ liệu UCI chess, dày đặc (49.33\%) \\
+chess & 3.196 & 75 & 37.0 & Dày đặc (49.33\%) \\
 \hline
-Mushroom & 8.416 & 119 & 23.0 & Dữ liệu UCI mushrooms, dày đặc (19.33\%) \\
+mushroom & 8.416 & 119 & 23.0 & Dày đặc (19.33\%) \\
 \hline
-Accidents & 340.183 & 468 & 33.8 & Dữ liệu tai nạn, dày đặc (7.22\%) \\
+accidents & 340.183 & 468 & 33.8 & Dày đặc (7.22\%) \\
 \hline
-Retail & 88.162 & 16.470 & 10.3 & Bán lẻ (Bỉ), thưa (0.06\%) \\
+retail & 88.162 & 16.470 & 10.3 & Thưa (0.06\%) \\
 \hline
-T10I4D100K & 100.000 & 870 & 10.1 & Dữ liệu tổng hợp, thưa (1.16\%) \\
+T10I4D100K & 100.000 & 870 & 10.1 & Thưa (1.16\%) \\
 \hline
 \end{tabular}
 }
@@ -168,45 +174,47 @@ T10I4D100K & 0.01 & 385 & 385 & 100\% & 385 & 100\% \\
 Bảng \ref{tab:correctness} cho thấy hai cài đặt của nhóm đạt tỉ lệ khớp $100.0\%$ trên toàn bộ các bộ dữ liệu thử nghiệm, không xảy ra hiện tượng bỏ sót hay dư thừa tập phổ biến nào. Giá trị support count của từng itemset cũng khớp với SPMF. Như vậy có thể kết luận hai giải thuật FP-growth được cài đặt phù hợp với bài toán khai thác tập phổ biến.
 
 \subsection{Phân tích mối quan hệ giữa minsupport và thời gian chạy}
+\label{subsec:minsup-vs-runtime}
 Để đánh giá ảnh hưởng của minsupport lên hiệu năng của giải thuật, nhóm tiến hành đo lường thời gian thực thi của hai bản cài đặt của nhóm và so sánh với SPMF. Thực nghiệm được tiến hành bằng cách giảm dần minsupport để quan sát sự biến thiên của thời gian chạy. 
 
 Để biểu diễn trực quan, các kết quả được vẽ thành biểu đồ đồ thị đường tương ứng cho từng tập dữ liệu (Hình \ref{fig:runtime_all}).
 
 \begin{figure*}[htbp]
     \centering
-    \begin{minipage}{0.32\textwidth}
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_chess.png} % Chess
+        \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_chess.png}
         \caption{Chess (Dày đặc)}
         \label{fig:runtime-chess}
-    \end{minipage}\hfill
-    \begin{minipage}{0.32\textwidth}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_mushroom.png} % Mushroom
+        \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_mushroom.png}
         \caption{Mushroom (Dày đặc)}
         \label{fig:runtime-mushroom}
-    \end{minipage}\hfill
-    \begin{minipage}{0.32\textwidth}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_accidents.png} % Accidents
+        \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_accidents.png}
         \caption{Accidents (Dày đặc)}
         \label{fig:runtime-accidents}
-    \end{minipage}
+    \end{subfigure}
     
-    \vspace{0.5cm}
-    \begin{minipage}{0.48\textwidth}
+    \vspace{0.4cm}
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=0.7\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_retail.png} % Retail
+        \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_retail.png}
         \caption{Retail (Thưa)}
         \label{fig:runtime-retail}
-    \end{minipage}\hfill
-    \begin{minipage}{0.48\textwidth}
+    \end{subfigure}\hspace{0.04\textwidth}
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=0.7\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_T10I4D100K.png} % T10I4D100K
+        \includegraphics[width=\linewidth]{../data/results/exp2_runtime_vs_minsup/plot_runtime_T10I4D100K.png}
         \caption{T10I4D100K (Thưa)}
         \label{fig:runtime-T10I4D100K}
-    \end{minipage}
-    \caption{Biểu đồ so sánh thời gian chạy theo minsupport giữa cài đặt cơ bản, tối ưu và SPMF}
+    \end{subfigure}
+    
+    \caption{Biểu đồ so sánh thời gian chạy theo \textit{minsup} giữa cài đặt cơ bản, tối ưu và SPMF.}
     \label{fig:runtime_all}
 \end{figure*}
 
@@ -216,43 +224,49 @@ Mối quan hệ này có thể được lí giải dựa vào ý nghĩa của mi
 
 Hai cài đặt bằng Julia của nhóm đều có thời gian thực thi thấp hơn so với SPMF ở đa số các tập dữ liệu. Sự chênh lệch này do cơ chế biên dịch tức thời (JIT) trong Julia có độ trễ thấp hơn nhiều so với máy ảo Java (JVM) trong quá trình xây FP-tree.
 
-Ngoài ra, với minsupport tương đối cao, thời gian thực thi giữa bản cơ bản và tối ưu tương đương nhau, cho thấy các cải tiến tối ưu bộ nhớ và thời gian chưa làm nên khác biệt khi FP-tree chưa quá phức tạp.
+Ngoài ra, với minsupport tương đối cao, thời gian thực thi giữa bản cơ bản và tối ưu tương đương nhau, cho thấy các cải tiến tối ưu về thời gian chưa làm nên khác biệt khi FP-tree chưa quá phức tạp.
 
-Đáng chú ý ở tập dữ liệu thưa \textit{T10I4D100K} (Hình \ref{fig:runtime-T10I4D100K}), khi minsupport giảm xuống các mức thấp nhất (từ $0.02$ xuống $0.01$), thời gian chạy của cài đặt cơ bản tăng lên khoảng $3$ lần (từ dưới $0.5s$ lên dưới $1.5s$), trong khi độ dốc lên của đường tối ưu và SPMF tương đương nhau. Qua đó, quan sát này đã thể hiện rõ rệt ảnh hưởng của các kỹ thuật tối ưu bộ nhớ và thời gian đối với giải thuật FP-growth.
+Đáng chú ý ở tập dữ liệu thưa \textit{T10I4D100K} (Hình \ref{fig:runtime-T10I4D100K}), khi minsupport giảm xuống các mức thấp nhất (từ $0.02$ xuống $0.01$), thời gian chạy của cài đặt cơ bản tăng lên khoảng $3$ lần (từ dưới $0.5s$ lên dưới $1.5s$), trong khi độ dốc lên của đường tối ưu và SPMF tương đương nhau. Qua đó, quan sát này đã thể hiện rõ rệt ảnh hưởng của các kỹ thuật tối ưu thời gian đối với giải thuật FP-growth.
 
 \subsection{Phân tích mối quan hệ giữa số lượng tập phổ biến và minsupport}
 Để đánh giá, so sánh số lượng tập phổ biến của dữ liệu dày và thưa, nhóm tiếp tục đo lường số lượng tập phổ biến sinh ra tại các ngưỡng \textit{minsup} tương ứng với tập dữ liệu dày và thưa. Trục Y của đồ thị là thang đo Logarit cơ số 10 - \textit{Log Scale} nhằm thể hiện sự tăng trưởng theo cấp số nhân (Hình \ref{fig:itemset_count}).
 
 \begin{figure*}[htbp]
     \centering
-    \begin{minipage}{0.32\textwidth}
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_chess.png} % Chess
-        \caption{chess (Dày đặc)}
-    \end{minipage}\hfill
-    \begin{minipage}{0.32\textwidth}
+        \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_chess.png}
+        \caption{Chess (Dày đặc)}
+        \label{fig:count-chess}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_mushroom.png} % Mushroom
-        \caption{mushroom (Dày đặc)}
-    \end{minipage}\hfill
-    \begin{minipage}{0.32\textwidth}
+        \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_mushroom.png}
+        \caption{Mushroom (Dày đặc)}
+        \label{fig:count-mushroom}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_accidents.png} % Accidents
-        \caption{accidents (Dày đặc)}
-    \end{minipage}
+        \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_accidents.png}
+        \caption{Accidents (Dày đặc)}
+        \label{fig:count-accidents}
+    \end{subfigure}
     
-    \vspace{0.5cm}
-    \begin{minipage}{0.48\textwidth}
+    \vspace{0.4cm}
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=0.7\linewidth]{../data/results/exp3_itemset_count/plot_count_accidents.png} % Retail
-        \caption{retail (Thưa)}
-    \end{minipage}\hfill
-    \begin{minipage}{0.48\textwidth}
+        \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_retail.png}
+        \caption{Retail (Thưa)}
+        \label{fig:count-retail}
+    \end{subfigure}\hspace{0.04\textwidth}
+    \begin{subfigure}[b]{0.32\textwidth}
         \centering
-        \includegraphics[width=0.7\linewidth]{../data/results/exp3_itemset_count/plot_count_T10I4D100K.png} % T10I4D100K
+        \includegraphics[width=\linewidth]{../data/results/exp3_itemset_count/plot_count_T10I4D100K.png}
         \caption{T10I4D100K (Thưa)}
-    \end{minipage}
-    \caption{Biểu đồ số lượng tập phổ biến khai thác theo minsupport}
+        \label{fig:count-T10I4D100K}
+    \end{subfigure}
+    
+    \caption{Biểu đồ số lượng tập phổ biến khai thác được theo \textit{minsup}.}
     \label{fig:itemset_count}
 \end{figure*}
 
@@ -263,25 +277,199 @@ Quan sát trên cả 5 đồ thị, khi minsupport giảm dần, số lượng t
 Ngược lại, các tập dữ liệu thưa (\textit{retail}, \textit{T10I4D100K}) có các giao dịch tương đối ngắn, các item lặp lại ít, số lượng tập phổ biến ít hơn nhiều so với các tập dữ liệu dày đặc ở cùng một ngưỡng minsupport và thay đổi ít hơn khi minsupport thay đổi. Ví dụ trên tập \textit{retail}, ngưỡng minsupport $0.1$ chỉ có đúng $9$ tập phổ biến và khi giảm còn $0.04$, chỉ có thêm $9$ tập phổ biến mới. 
 
 \subsection{Đánh giá và so sánh hiệu năng bộ nhớ}
+Để đánh giá hiệu năng bộ nhớ, hai cài đặt cơ bản và tối ưu được được chạy và đo các dữ liệu chính sau: \textbf{Peak RSS} (mức RAM vật lý tối đa của tiến trình), $\mathbf{\Delta}$\textbf{RSS} (lượng RAM tăng khi chạy giải thuật), và \textbf{Total Allocated Memory} (tổng bộ nhớ cấp phát trên Heap). Kết quả chi tiết được tổng hợp trong Bảng~\ref{tab:memory_eval}.
+
+\begin{table*}[htbp]
+    \centering
+    \caption{So sánh hiệu năng bộ nhớ giữa cài đặt cơ bản và tối ưu}
+    \label{tab:memory_eval}
+    \vspace{0.2cm}
+    \renewcommand{\arraystretch}{1.25}
+    \begin{tabular}{|l|c|l|r|r|r|r|r|r|}
+        \hline
+        \textbf{Tập dữ liệu} & \textbf{Minsup} & \textbf{Phiên bản} & \textbf{Peak RSS} & \textbf{$\Delta$RSS} & \textbf{Alloc} & \textbf{GC Time} & \textbf{Tree Size} & \textbf{Tree Nodes} \\
+        & & & \textbf{(MB)} & \textbf{(MB)} & \textbf{(MB)} & \textbf{(s)} & \textbf{(MB)} & \\ \hline
+        \multirow{2}{*}{\textit{chess}} & \multirow{2}{*}{0.75} & Basic & 259.40 & 0.00 & 46.55 & 0.003 & 0.66 & 1,898 \\
+        & & Optimized & 260.04 & 0.00 & \textbf{32.55} & \textbf{0.000} & 0.67 & 1,898 \\ \hline
+        \multirow{2}{*}{\textit{mushroom}} & \multirow{2}{*}{0.35} & Basic & 259.23 & 0.00 & 12.76 & 0.000 & 0.36 & 1,146 \\
+        & & Optimized & 259.87 & 0.00 & \textbf{3.92} & 0.000 & 0.37 & 1,146 \\ \hline
+        \multirow{2}{*}{\textit{retail}} & \multirow{2}{*}{0.04} & Basic & 281.47 & 0.15 & 42.87 & 0.000 & 0.03 & 120 \\
+        & & Optimized & 282.18 & \textbf{0.00} & \textbf{14.20} & 0.000 & 0.03 & 120 \\ \hline
+        \multirow{2}{*}{\textit{T10I4D100K}} & \multirow{2}{*}{0.02} & Basic & 394.10 & 121.15 & 264.91 & 0.246 & 75.04 & 229,245 \\
+        & & Optimized & \textbf{355.00} & \textbf{82.82} & \textbf{146.20} & \textbf{0.072} & 76.14 & 229,245 \\ \hline
+        \multirow{2}{*}{\textit{accidents}} & \multirow{2}{*}{0.65} & Basic & 403.45 & 3.78 & 422.97 & 0.033 & 3.50 & 12,337 \\
+        & & Optimized & \textbf{401.73} & 20.55 & \textbf{124.82} & \textbf{0.009} & 3.55 & 12,337 \\ \hline
+    \end{tabular}
+\end{table*}
+
+\begin{figure*}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../data/results/exp4_memory/plot_peak_rss.png}
+        \caption{Mức RAM tối đa của tiến trình (Peak RSS)}
+        \label{fig:mem_peak}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../data/results/exp4_memory/plot_delta_rss.png}
+        \caption{Lượng RAM tăng thêm ($\Delta$RSS)}
+        \label{fig:mem_delta}
+    \end{subfigure}
+    
+    \vspace{0.4cm}
+    
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../data/results/exp4_memory/plot_alloc.png}
+        \caption{Tổng bộ nhớ cấp phát}
+        \label{fig:mem_alloc}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../data/results/exp4_memory/plot_bytes_per_node.png}
+        \caption{Chi phí bộ nhớ trung bình trên mỗi nút FP-tree}
+        \label{fig:mem_bytes}
+    \end{subfigure}
+    
+    \caption{So sánh các chỉ số hiệu năng bộ nhớ giữa cài đặt cơ bản và tối ưu.}
+    \label{fig:memory_plots}
+\end{figure*}
+
+Các số liệu và biểu đồ từ Bảng~\ref{tab:memory_eval} cũng như Hình~\ref{fig:mem_alloc}--\ref{fig:mem_peak} cho thấy các kỹ thuật tối ưu bộ nhớ ở \ref{subsec:optimization} như khử đệ quy, sử dụng BitArray cho quá trình xây FP-tree cũng như sử dụng single-prefix path cho quá trình khai thác tập phổ biến mang lại hiệu quả về bộ nhớ đáng kể cho cài đặt tối ưu so với cơ bản.
+
+Mặc dù số nút và kích thước của FP-tree tương đương nhau, số lượng bộ nhớ cấp phát của bản tối ưu ít hơn nhiều so với cơ bản, thể hiện rõ trên $5$ tập dữ liệu. Đáng chú ý ở cơ sở dữ liệu \textit{accidents}, lượng bộ nhớ cấp phát cho cài đặt tối ưu giảm lên đến $100$mb, khoảng $3.5$ lần so với cài đặt cơ bản. Sự khác biệt này có thể được giải thích chủ yếu nhờ vào việc sử dụng BitArray chia sẻ chung cho các giao dịch, giảm đáng kể lượng bộ nhớ cần cấp phát từ \texttt{Set}.
+
+Về \textbf{Peak RSS} và $\mathbf{\Delta}$\textbf{RSS}, hai cài đặt có hiệu quả bộ nhớ chênh lệch không đáng kể ở tập \textit{chess}, \textit{mushroom}, và \textit{retail}. Song ở tập \textit{T10I4D100K} và \textit{accidents}, bản tối ưu tương đối hiệu quả hơn so với cài đặt cơ bản. 
 
 \subsection{Phân tích khả năng mở rộng đối với các mức kích thước cơ sở dữ liệu}
+Để đánh giá khả năng mở rộng - scalability, giải thuật FP-growth được chạy trên số lượng giao dịch tăng dần từ 10\%, 25\%, 50\%, 75\% đến 100\% thuộc hai tập dữ liệu đại diện: \textit{accidents} (dày đặc, \textit{minsup} = 0.5) và \textit{retail} (thưa, \textit{minsup} = 0.005). Kết quả đo thời gian thực thi của cài đặt cơ bản, tối ưu và thư viện SPMF được thể hiện ở Hình~\ref{fig:scalability_plots}.
+
+\begin{figure*}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../data/results/exp5_scalability/plot_scalability_accidents.png}
+        \caption{Thời gian chạy theo số giao dịch (\textit{accidents})}
+        \label{fig:scale_acc}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../data/results/exp5_scalability/plot_scalability_retail.png}
+        \caption{Thời gian chạy theo số giao dịch (\textit{retail})}
+        \label{fig:scale_ret}
+    \end{subfigure}
+    
+    \vspace{0.4cm}
+    
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../data/results/exp5_scalability/plot_time_per_trans_accidents.png}
+        \caption{Thời gian xử lý trên mỗi 1,000 giao dịch (\textit{accidents})}
+        \label{fig:per1k_acc}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../data/results/exp5_scalability/plot_time_per_trans_retail.png}
+        \caption{Thời gian xử lý trên mỗi 1,000 giao dịch (\textit{retail})}
+        \label{fig:per1k_ret}
+    \end{subfigure}
+    
+    \caption{Đánh giá khả năng mở rộng của FP-growth trên tập dữ liệu dày đặc (\textit{accidents}) và thưa (\textit{retail}).}
+    \label{fig:scalability_plots}
+\end{figure*}
+
+Quan sát các đồ thị ở Hình~\ref{fig:scale_acc} và \ref{fig:scale_ret}, có thể thấy giải thuật FP-growth của cả ba cài đặt có thời gian thực thi tăng tương đối tuyến tính với kích thước tập dữ liệu. Điều này được thể hiện rõ bởi đường hồi quy tuyến tính (đường nét đứt màu xám) của các điểm thuộc cài đặt cơ bản (điểm màu xanh dương) đạt $R^2 = 0.961$ trên \textit{accidents} và $R^2 = 0.989$ trên \textit{retail} mặc dù theo quan sát đường xanh dương có vẻ ít thẳng hơn so với các đường còn lại. Bên cạnh đó, thời gian xây FP-tree cũng tăng tuyến tính với kích thước tập dữ liệu, thể hiện ở đường màu tím.
+
+Tiếp đến, Hình~\ref{fig:per1k_acc} và \ref{fig:per1k_ret} cho thấy thời gian xử lý trung bình cho mỗi giao dịch trên $1,000$ giao dịch tương đối bằng phẳng, đặc biệt ở cài đặt tối ưu với chênh lệch thời gian không quá $0.5$ms.
 
 \subsection{Phân tích ảnh hưởng của độ dài trung bình của giao dịch đối với giải thuật FP-growth}
+\label{subsection:avg-length}
+Để đánh giá tác động của độ dài giao dịch đến chi phí xây dựng cây và khai thác đệ quy, nhóm tạo các tập dữ liệu tổng hợp có cùng quy mô 10,000 giao dịch với ngưỡng \textit{minsup} cố định ở mức $0.01$, đồng thời tăng dần tham số độ dài giao dịch trung bình $T \in \{5, 10, 15, 20, 25, 30\}$. Kết quả thực nghiệm được trình bày tại Bảng~\ref{tab:avg_len} và trực quan hóa qua Hình~\ref{fig:avg_len_plots}.
+
+\begin{table*}[htbp]
+    \centering
+    \caption{Ảnh hưởng của độ dài giao dịch trung bình $T$ đến kích thước cây, số tập phổ biến và thời gian chạy ($10,000$ giao dịch, \textit{minsup} $= 0.01$)}
+    \label{tab:avg_len}
+    \vspace{0.2cm}
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|c|r|r|r|r|r|r|r|r|r|}
+        \hline
+        \textbf{$T$} & \textbf{Avg Len} & \textbf{Freq.} & \textbf{Build (Basic)} & \textbf{Basic} & \textbf{Optimized} & \textbf{SPMF} & \textbf{Itemsets} & \textbf{Max} & \textbf{Tree Nodes} \\
+        & \textbf{(Thực tế)} & \textbf{Items} & \textbf{(s)} & \textbf{(s)} & \textbf{(s)} & \textbf{(s)} & & \textbf{Len} & \\ \hline
+        5  & 5.71  & 199 & 0.015 & 0.019 & \textbf{0.008} & 0.098 & 457    & 4  & 14,176  \\
+        10 & 10.04 & 361 & 0.040 & 0.068 & \textbf{0.035} & 0.244 & 2,004  & 9  & 59,867  \\
+        15 & 14.92 & 457 & 0.063 & 0.136 & \textbf{0.069} & 0.292 & 4,216  & 9  & 112,246 \\
+        20 & 19.93 & 520 & 0.077 & 0.290 & \textbf{0.171} & 0.578 & 6,730  & 10 & 164,270 \\
+        25 & 24.88 & 558 & 0.092 & 0.504 & \textbf{0.300} & 0.625 & 11,794 & 10 & 213,355 \\
+        30 & 29.91 & 575 & 0.102 & 1.350 & \textbf{0.943} & 1.009 & 20,228 & 10 & 262,267 \\ \hline
+    \end{tabular}
+\end{table*}
+
+\begin{figure*}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{../data/results/exp6_avg_length/plot_runtime_vs_length.png}
+        \caption{Thời gian chạy theo độ dài TB}
+        \label{fig:len_runtime}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{../data/results/exp6_avg_length/plot_count_vs_length.png}
+        \caption{Số tập phổ biến và nút cây (log)}
+        \label{fig:len_counts}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{../data/results/exp6_avg_length/plot_runtime_vs_itemsets.png}
+        \caption{Thời gian chạy theo số tập phổ biến}
+        \label{fig:len_vs_itemsets}
+    \end{subfigure}
+    
+    \caption{Phân tích ảnh hưởng của độ dài trung bình giao dịch đến hiệu năng của FP-growth tại \textit{minsup} $= 0.01$.}
+    \label{fig:avg_len_plots}
+\end{figure*}
+
+Quan sát các số liệu từ Bảng~\ref{tab:avg_len} cũng như Hình~\ref{fig:len_runtime}, có thể thấy khi độ dài giao dịch trung bình tăng, thời gian xây FP-tree tăng không đáng kể ở dưới ngưỡng $0.1$s, thể hiện ở đường màu tím. Song, đường thời gian thực thi giải thuật FP-growth ở hai cài đặt cơ bản và tối ưu có hình dạng giống với hàm mũ, tức phi tuyến. Đáng chú ý khi độ dài giao dịch trung bình tăng lên mức tối đa (từ $25$ lên $30$), thời gian chạy của hai cài đặt trên tăng với độ dốc tương đối lớn, khoảng $3$ lần. Hiện tượng này do khi các giao dịch trở nên dài hơn, hai điều sau đồng thời xảy ra:
+
+\begin{enumerate}
+    \item Số lần xuất hiện của mỗi item tăng lên dẫn tới số lượng tập phổ biến tăng mạnh (Hình \ref{fig:len_counts}).
+    \item Số nút của FP-tree tăng mạnh (Hình \ref{fig:len_counts}).
+\end{enumerate}
+
+Chính vì FP-tree càng phức tạp và số lượng tập phổ biến càng lớn, giải thuật FP-growth cũng mất nhiều thời gian hơn để có thể khai thác tất cả các tập phổ biến. Điều này được thể hiện rõ ở Bảng~\ref{tab:avg_len} và Hình~\ref{fig:len_vs_itemsets}, thời gian chạy tăng tương đối tuyến tính với số lượng tập phổ biến (đường màu xanh và cam) cũng như khi số lượng tập phổ biến vượt $6,730$, thời gian khai thác chiếm phần lớn thời gian thực thi so với thời gian xây FP-tree, điển hình ở $T=30$ với hơn $92.4\%$ thời gian dùng để khai thác tập phổ biến.
 
 \subsection{Kết luận và đề xuất các hướng tối ưu hóa}
+Qua $6$ thực nghiệm đã trình bày, các kỹ thuật tối ưu ở mục \ref{subsec:optimization} cho kết quả cải tiến về thời gian thực thi cũng như bộ nhớ sử dụng so với cài đặt cơ bản và thư viện SPMF. Song, một số thực nghiệm đặc biệt là thực nghiệm ở mục \ref{subsection:avg-length} cho thấy hai hạn chế, đó là: (i) chi phí bộ nhớ mỗi nút FP-tree còn cao ($\approx 270$--$355$~Bytes/nút), (ii) giai đoạn dựng và duyệt conditional FP-tree chiếm tới $>90\%$ thời gian chạy khi giao dịch dài.
+
+Để khắc phục các hạn chế trên, ba hướng tối ưu hóa sau được khuyến khích sử dụng:
+
+\textbf{Tối ưu thêm cấu trúc dữ liệu:}
+Hiện tại, mỗi nút đều khởi tạo một bảng băm \texttt{Dict\{Int, OptFPNode\}} để lưu nút con, gây lãng phí bộ nhớ lớn ngay cả với các nút lá hoặc nút chỉ có 1--2 con. Thay thế \texttt{Dict} bằng cấu trúc \textit{First-Child / Next-Sibling} hoặc mảng động kích thước nhỏ (chỉ chuyển sang \texttt{Dict} khi số con vượt ngưỡng) kết hợp cấp phát theo vùng (arena allocation) sẽ giảm đáng kể kích thước cây tĩnh trên các tập dữ liệu thưa như \textit{T10I4D100K}.
+
+\textbf{Áp dụng kỹ thuật FP-Array:} 
+Theo đề xuất của Grahne và Zhu (2003), việc sử dụng một ma trận tam giác lưu tần suất đồng xuất hiện của các cặp 2-itemset trong lần quét đầu tiên cho phép bỏ qua bước duyệt ngược cây để tính \textit{local support} khi xây dựng conditional FP-tree. Kỹ thuật này đặc biệt hiệu quả để giải quyết nút thắt khai thác đệ quy trên các tập dữ liệu dày đặc hoặc có độ dài giao dịch lớn ($T=30$).
+
+\textbf{Song song hóa đa luồng (Multi-threading):} 
+Sau khi xây FP-tree, quá trình khai thác các conditional FP-tree tương ứng với từng dòng trong Header Table là hoàn toàn độc lập về mặt dữ liệu. Việc tận dụng cơ chế \texttt{Threads.@threads} của Julia để phân bổ các nhánh khai thác trên nhiều nhân CPU sẽ giúp cải thiện thời gian thực thi trên các tập dữ liệu lớn.
 
 \section{Chương 3}
 
 \subsection{Ứng dụng 1: Phân tích giỏ hàng}
-Để ứng dụng thuật toán FP-growth trong phân tích giỏ hàng, nhóm tiến hành thử nghiệm trên tập dữ liệu bán lẻ \textit{groceries}, tìm ra các luật kết hợp thõa mãn $minsupport = 0.1$ và $minconf = 0.2$. Sau đây là Bảng \ref{tab:top10_rules} minh họa 10 luật kết hợp có độ nâng - Lift cao nhất, thể hiện mối tương quan dương mạnh giữa các nhóm sản phẩm.
+Để ứng dụng thuật toán FP-growth trong phân tích giỏ hàng, nhóm tiến hành thử nghiệm trên tập dữ liệu bán lẻ \textit{groceries}, tìm ra các luật kết hợp thõa mãn $minsup = 0.01$ và $minconf = 0.2$. Sau đây là Bảng \ref{tab:top10_rules} minh họa 10 luật kết hợp có độ nâng - Lift cao nhất, thể hiện mối tương quan dương mạnh giữa các nhóm sản phẩm.
 
-\begin{table*}[htpb]
+\begin{table}[htpb]
     \centering
     \caption{Top 10 luật kết hợp mạnh từ tập dữ liệu groceries (Theo Lift)}
     \label{tab:top10_rules}
     \vspace{0.2cm}
-    \renewcommand{\arraystretch}{1.3}
-    \resizebox{\textwidth}{!}{
+    \renewcommand{\arraystretch}{1.2}
+    \resizebox{\columnwidth}{!}{
     \begin{tabular}{|l|l|c|c|c|}
         \hline
         \textbf{X} & \textbf{Y} & \textbf{Support} & \textbf{Confidence} & \textbf{Lift} \\ \hline
@@ -297,7 +485,7 @@ Ngược lại, các tập dữ liệu thưa (\textit{retail}, \textit{T10I4D100
         \{curd, whole milk\} & \{yogurt\} & 99 & 38.52\% & 2.76 \\ \hline
     \end{tabular}
     }
-\end{table*}
+\end{table}
 
 Có thể thấy từ bảng thống kê trên, các luật có Lift cao (từ $2.76$ đến $3.30$) cho thấy hai nhóm mặt hàng $X$ và $Y$ cùng xuất hiện trong một giỏ hàng thường xuyên hơn khoảng $3$ lần so với mức kỳ vọng nếu $X$ và $Y$ độc lập với nhau. Ví dụ, luật $\text{beef} \rightarrow \text{root vegetables}$ có Lift là $3.04$. Nếu hai mặt hàng này không liên quan, ta chỉ kỳ vọng khoảng $56$ giỏ hàng chứa cả hai, nhưng thực tế quan sát được $171$ giỏ. Nói cách khác, khách hàng mua thịt bò có khả năng mua thêm rau củ cao gấp khoảng $3$ lần so với một khách hàng bất kỳ ($33.14\%$ so với $10.9\%$).
 
@@ -383,6 +571,9 @@ Tuy nhiên, cách mã hóa (vị trí, nucleotide) còn một số hạn chế: 
 
 \bibitem{han2000mining}
 Jiawei Han, Jian Pei, and Yiwen Yin. 2000. Mining frequent patterns without candidate generation. In \textit{ACM SIGMOD Record}, 29(2), 1-12.
+
+\bibitem{han2004mining}
+Jiawei Han, Jian Pei, Yiwen Yin, and Runying Mao. 2004. Mining frequent patterns without candidate generation: A frequent-pattern tree approach. In \textit{Data Mining and Knowledge Discovery}, 8(1), 53--87.
 
 \bibitem{liu2007optimization}
 Li Liu, Eric Li, Yimin Zhang, and Zhizhong Tang. 2007. Optimization of Frequent Itemset Mining on Multiple-Core Processor. In \textit{Proceedings of the 33rd international conference on Very large data bases (VLDB)}, 1275--1285.
