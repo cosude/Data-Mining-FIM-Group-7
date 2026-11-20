@@ -9,71 +9,71 @@ function fpgrowth(
     return fpgrowth(tree, ξ)
 end
 
-# Algorithm 2 (FP-growth), Han, Pei, Yin, Mao (2004), mục 3.
+# Algorithm 2 (FP-growth), Han, Pei, Yin (2000), mục 3.
 
 """
-    single_prefix_path(tree) -> (P, R)
+    single_path(tree) -> Union{Vector{FPNode}, Nothing}
 
-Tách FP-tree theo mục 3.2 của bài báo. `P` là single prefix-path: chuỗi node đi từ root
-xuống tới node rẽ nhánh đầu tiên (node có > 1 con; node này thuộc `P`, như (c:7) trong
-Example 3). `R` là node mà phần multipath Q treo bên dưới, đóng vai trò pseudo-root của Q.
-
-- Cây chỉ gồm một đường đơn: `P` là cả đường, `R` là node lá (không có con, nên Q rỗng).
-- Root có > 1 con: `P` rỗng, `R` là root (Q chính là cả cây, dòng (8)).
+Dòng (1): kiểm tra cả `tree` có phải một đường đơn hay không, tức là mọi node (kể cả root)
+có không quá một con. Nếu đúng, trả về các node trên đường đó theo thứ tự từ root xuống;
+nếu cây rẽ nhánh ở bất kỳ đâu, trả về `nothing`.
 """
-function single_prefix_path(tree::FPTree)
+function single_path(tree::FPTree)
     P = FPNode[]
-    R = tree.root
-    while length(R.children) == 1
-        R = first(values(R.children))
-        push!(P, R)
+    node = tree.root
+    while true
+        n = length(node.children)
+        n == 0 && return P          # tới lá: cả cây là một đường đơn
+        n > 1 && return nothing     # có rẽ nhánh: không phải đường đơn
+        node = first(values(node.children))
+        push!(P, node)
     end
-    return P, R
 end
 
 """
-    generate_combinations!(out, P, idx, current_items, current_min_sup)
+    generate_combinations!(out, P, α, idx, current_items, current_min_sup)
 
-Dòng (5)-(6): sinh mọi tổ hợp con khác rỗng β của các node trên đường đơn `P` (quay lui),
-với support = support nhỏ nhất của các node trong β (Lemma 3.2).
+Dòng (2)-(3): sinh mọi tổ hợp con khác rỗng β của các node trên đường đơn `P` (quay lui),
+ghi pattern β ∪ α với support = support nhỏ nhất của các node trong β (Lemma 3.2).
 """
 function generate_combinations!(
     out::Vector{Tuple{Vector{Int}, Int}},
     P::Vector{FPNode},
+    α::Vector{Int},
     idx::Int,
     current_items::Vector{Int},
     current_min_sup::Int
 )
     if idx > length(P)
-        isempty(current_items) || push!(out, (copy(current_items), current_min_sup))
+        isempty(current_items) || push!(out, (vcat(current_items, α), current_min_sup))
         return
     end
 
     # Không lấy node thứ idx
-    generate_combinations!(out, P, idx + 1, current_items, current_min_sup)
+    generate_combinations!(out, P, α, idx + 1, current_items, current_min_sup)
 
     # Lấy node thứ idx
     node = P[idx]
     push!(current_items, node.item_name::Int)
-    generate_combinations!(out, P, idx + 1, current_items, min(current_min_sup, node.count))
+    generate_combinations!(out, P, α, idx + 1, current_items, min(current_min_sup, node.count))
     pop!(current_items) # quay lui
 end
 
 """
-    build_conditional_pattern_base(tree, item, R = tree.root) -> (paths, weights)
+    build_conditional_pattern_base(tree, item) -> (paths, weights)
 
-Dòng (11), Property 3.2: lần theo node-link của `item`; với mỗi node, đi ngược `parent`
-lên tới `R` (root, hoặc pseudo-root của phần multipath Q) để lấy prefix path. Mỗi prefix
-path mang count của node `item` tương ứng (transformed prefix path).
+Dòng (6): lần theo node-link của `item` (Property 3.1); với mỗi node, đi ngược `parent` lên
+tới root để lấy prefix path. Mỗi prefix path mang count của node `item` tương ứng
+(transformed prefix path, Property 3.2).
 """
-function build_conditional_pattern_base(tree::FPTree, item::Int, R::FPNode=tree.root)
+function build_conditional_pattern_base(tree::FPTree, item::Int)
     paths = Vector{Int}[]
     weights = Int[]
 
     for node in nodelinks(tree, item)
         path = Int[]
         curr = node.parent
-        while curr !== R
+        while curr !== tree.root
             push!(path, curr.item_name::Int)
             curr = curr.parent
         end
@@ -90,7 +90,7 @@ end
 
 """
     fpgrowth(tree::FPTree, ξ::Int) -> Vector{Tuple{Vector{Int}, Int}}
-    
+
 Algorithm 2: khai thác toàn bộ tập phổ biến từ `tree` (hoặc trực tiếp từ `DB`) với ngưỡng
 support tuyệt đối `ξ`, bằng cách gọi FP-growth(FP-tree, null). Trả về các cặp
 `(itemset, support)`; item trong itemset không được sắp theo thứ tự nào.
@@ -108,49 +108,28 @@ function _fpgrowth!(
     α::Vector{Int},
     ξ::Int
 )
-    # (1)-(4) if Tree contains a single prefix path: P là single prefix-path,
-    # Q là phần multipath bên dưới R (top branching node được thay bằng null root).
-    # (8) else Q là cả Tree: khi đó P rỗng, R là root.
-    P, R = single_prefix_path(tree)
-
-    # (5)-(7) freq_pattern_set(P): mọi tổ hợp β của các node trên P,
-    # support = min support của các node trong β. α được ghép vào ở dòng (15).
-    freq_P = Tuple{Vector{Int}, Int}[]
-    generate_combinations!(freq_P, P, 1, Int[], typemax(Int))
-
-    # (9)-(14) freq_pattern_set(Q). Khi P rỗng thì kết quả cuối chính là freq_pattern_set(Q),
-    # nên ghi thẳng vào `patterns` để khỏi sao chép.
-    freq_Q = isempty(P) ? patterns : Tuple{Vector{Int}, Int}[]
-    if !isempty(R.children)
-        # Item thuộc P chỉ xuất hiện một lần trong cây, trên P (Lemma 3.3), nên các item
-        # còn lại của FList chính là các item của Q, và mọi node của chúng nằm dưới R.
-        items_P = Set{Int}(node.item_name::Int for node in P)
-        for ai in Iterators.reverse(tree.flist) # từ đáy header table lên, như Example 2
-            ai in items_P && continue
-
-            # (10) generate pattern β = aᵢ ∪ α with support = aᵢ.support
-            β = vcat(Int[ai], α)
-            push!(freq_Q, (β, tree.header_table[ai].support))
-
-            # (11) construct β's conditional pattern-base, then β's conditional FP-tree Tree_β
-            cond_paths, cond_weights = build_conditional_pattern_base(tree, ai, R)
-            isempty(cond_paths) && continue
-            tree_beta = fptree_construction(FPTree, cond_paths, ξ, cond_weights)
-
-            # (12)-(13) if Tree_β ≠ ∅ then call FP-growth(Tree_β, β)
-            isempty(tree_beta.root.children) || _fpgrowth!(freq_Q, tree_beta, β, ξ)
-        end
+    # (1) if Tree contains a single path P
+    P = single_path(tree)
+    if P !== nothing
+        # (2)-(3) then for each combination β of the nodes in P:
+        # generate pattern β ∪ α with support = minimum support of nodes in β
+        generate_combinations!(patterns, P, α, 1, Int[], typemax(Int))
+        return patterns
     end
 
-    # (15) return freq_pattern_set(P) ∪ freq_pattern_set(Q) ∪ (freq_pattern_set(P) × freq_pattern_set(Q))
-    isempty(P) && return patterns # freq_P rỗng, freq_Q đã nằm trong `patterns`
-    for (β, sup) in freq_P
-        push!(patterns, (vcat(β, α), sup))
-    end
-    append!(patterns, freq_Q)
-    for (q, sup_q) in freq_Q, (β, sup_beta) in freq_P
-        # q đã chứa α; support = min của hai pattern (luôn là sup_q, Lemma 3.3)
-        push!(patterns, (vcat(β, q), min(sup_q, sup_beta)))
+    # (4) else for each aᵢ in the header of Tree (từ đáy header table lên, như Example 2)
+    for ai in Iterators.reverse(tree.flist)
+        # (5) generate pattern β = aᵢ ∪ α with support = aᵢ.support
+        β = vcat(Int[ai], α)
+        push!(patterns, (β, tree.header_table[ai].support))
+
+        # (6) construct β's conditional pattern base and then β's conditional FP-tree Tree_β
+        cond_paths, cond_weights = build_conditional_pattern_base(tree, ai)
+        isempty(cond_paths) && continue
+        tree_beta = fptree_construction(FPTree, cond_paths, ξ, cond_weights)
+
+        # (7)-(8) if Tree_β ≠ ∅ then call FP-growth(Tree_β, β)
+        isempty(tree_beta.root.children) || _fpgrowth!(patterns, tree_beta, β, ξ)
     end
     return patterns
 end

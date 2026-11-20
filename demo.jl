@@ -17,8 +17,7 @@ function main(args)
     println("Số node của FP-tree: ", count_nodes(tree))
     length(FList) <= 30 && print_tree(tree)
 
-    # TODO: thay bằng kết quả fp_growth(tree, minsup_count) khi cài xong FP-Growth.
-    itemsets = [([i], support[i]) for i in FList]
+    itemsets = fpgrowth(tree, minsup_count)
     write_spmf(opts["output"], itemsets)
     println("Đã ghi ", length(itemsets), " itemset vào ", opts["output"])
 end

@@ -18,8 +18,9 @@ end
 """
     build_flist(support, ξ) -> Vector{Int}
 
-Giữ các item có support >= ξ (tập F) và sắp theo support giảm dần (FList). Cùng
-support thì item nhỏ hơn đứng trước (cùng quy tắc với SPMF).
+Giữ các item có support >= ξ (tập F) và sắp theo support giảm dần (FList; bài báo gốc
+Han, Pei, Yin (2000) ký hiệu là L). Cùng support thì item nhỏ hơn đứng trước (cùng quy tắc
+với SPMF).
 """
 function build_flist(support::Dict{Int,Int}, ξ::Int)
     FList = Int[item for (item, sup) in support if sup >= ξ]
@@ -30,7 +31,7 @@ end
 """
     build_header_table(FList, support) -> Dict{Int,HeaderTableEntry}
 
-Tạo header table, mỗi frequent item một entry kèm support của nó (dùng ở dòng (10)
+Tạo header table, mỗi frequent item một entry kèm support của nó (dùng ở dòng (5)
 của Algorithm 2); node-link được nối ở bước 2.
 """
 function build_header_table(FList::Vector{Int}, support::Dict{Int, Int})
