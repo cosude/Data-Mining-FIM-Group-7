@@ -14,6 +14,7 @@
 \usepackage{hyperref}
 \usepackage{multirow}
 \usepackage{subcaption}
+\usepackage{array}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em 
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -445,15 +446,15 @@ Quan sát các số liệu từ Bảng~\ref{tab:avg_len} cũng như Hình~\ref{f
 Chính vì FP-tree càng phức tạp và số lượng tập phổ biến càng lớn, giải thuật FP-growth cũng mất nhiều thời gian hơn để có thể khai thác tất cả các tập phổ biến. Điều này được thể hiện rõ ở Bảng~\ref{tab:avg_len} và Hình~\ref{fig:len_vs_itemsets}, thời gian chạy tăng tương đối tuyến tính với số lượng tập phổ biến (đường màu xanh và cam) cũng như khi số lượng tập phổ biến vượt $6,730$, thời gian khai thác chiếm phần lớn thời gian thực thi so với thời gian xây FP-tree, điển hình ở $T=30$ với hơn $92.4\%$ thời gian dùng để khai thác tập phổ biến.
 
 \subsection{Kết luận và đề xuất các hướng tối ưu hóa}
-Qua $6$ thực nghiệm đã trình bày, các kỹ thuật tối ưu ở mục \ref{subsec:optimization} cho kết quả cải tiến về thời gian thực thi cũng như bộ nhớ sử dụng so với cài đặt cơ bản và thư viện SPMF. Song, một số thực nghiệm đặc biệt là thực nghiệm ở mục \ref{subsection:avg-length} cho thấy hai hạn chế, đó là: (i) chi phí bộ nhớ mỗi nút FP-tree còn cao ($\approx 270$--$355$~Bytes/nút), (ii) giai đoạn dựng và duyệt conditional FP-tree chiếm tới $>90\%$ thời gian chạy khi giao dịch dài.
+Qua $6$ thực nghiệm đã trình bày, các kỹ thuật tối ưu ở mục \ref{subsec:optimization} cho kết quả cải tiến về thời gian thực thi cũng như bộ nhớ sử dụng so với cài đặt cơ bản và thư viện SPMF. Song, một số thực nghiệm đặc biệt là thực nghiệm ở mục \ref{subsection:avg-length} cho thấy hai hạn chế, đó là: (i) chi phí bộ nhớ mỗi nút FP-tree còn cao khoảng $270$--$355$~Bytes/nút, (ii) giai đoạn dựng và duyệt conditional FP-tree chiếm tới hơn $90\%$ thời gian chạy khi giao dịch dài.
 
 Để khắc phục các hạn chế trên, ba hướng tối ưu hóa sau được khuyến khích sử dụng:
 
 \textbf{Tối ưu thêm cấu trúc dữ liệu:}
-Hiện tại, mỗi nút đều khởi tạo một bảng băm \texttt{Dict\{Int, OptFPNode\}} để lưu nút con, gây lãng phí bộ nhớ lớn ngay cả với các nút lá hoặc nút chỉ có 1--2 con. Thay thế \texttt{Dict} bằng cấu trúc \textit{First-Child / Next-Sibling} hoặc mảng động kích thước nhỏ (chỉ chuyển sang \texttt{Dict} khi số con vượt ngưỡng) kết hợp cấp phát theo vùng (arena allocation) sẽ giảm đáng kể kích thước cây tĩnh trên các tập dữ liệu thưa như \textit{T10I4D100K}.
+Hiện tại, mỗi nút đều khởi tạo một bảng băm \texttt{Dict\{Int, OptFPNode\}} để lưu nút con. Để tối ưu thêm, ta có thể thay thế bằng cấu trúc \textit{First-Child / Next-Sibling} hoặc mảng động kích thước nhỏ kết hợp cấp phát theo vùng có thể giúp giảm bộ nhớ sử dụng trên các tập dữ liệu thưa như \textit{T10I4D100K}.
 
 \textbf{Áp dụng kỹ thuật FP-Array:} 
-Theo đề xuất của Grahne và Zhu (2003), việc sử dụng một ma trận tam giác lưu tần suất đồng xuất hiện của các cặp 2-itemset trong lần quét đầu tiên cho phép bỏ qua bước duyệt ngược cây để tính \textit{local support} khi xây dựng conditional FP-tree. Kỹ thuật này đặc biệt hiệu quả để giải quyết nút thắt khai thác đệ quy trên các tập dữ liệu dày đặc hoặc có độ dài giao dịch lớn ($T=30$).
+Theo nghiên cứu của Grahne và Zhu (2003) \cite{grahne2003efficiently}, việc sử dụng một ma trận tam giác (\textit{FP-array}) lưu tần suất đồng xuất hiện của các cặp 2-itemset trong \textbf{lần duyệt thứ hai} của quá trình xây FP-tree (cũng như cho các conditional FP-tree) cho phép bỏ qua bước duyệt ngược cây lần đầu để tính \textit{local support}.
 
 \textbf{Song song hóa đa luồng (Multi-threading):} 
 Sau khi xây FP-tree, quá trình khai thác các conditional FP-tree tương ứng với từng dòng trong Header Table là hoàn toàn độc lập về mặt dữ liệu. Việc tận dụng cơ chế \texttt{Threads.@threads} của Julia để phân bổ các nhánh khai thác trên nhiều nhân CPU sẽ giúp cải thiện thời gian thực thi trên các tập dữ liệu lớn.
@@ -468,11 +469,12 @@ Sau khi xây FP-tree, quá trình khai thác các conditional FP-tree tương �
     \caption{Top 10 luật kết hợp mạnh từ tập dữ liệu groceries (Theo Lift)}
     \label{tab:top10_rules}
     \vspace{0.2cm}
-    \renewcommand{\arraystretch}{1.2}
+    \setlength{\tabcolsep}{3pt}
+    \renewcommand{\arraystretch}{1.15}
     \resizebox{\columnwidth}{!}{
-    \begin{tabular}{|l|l|c|c|c|}
+    \begin{tabular}{|>{\raggedright\arraybackslash}p{3.0cm}|>{\raggedright\arraybackslash}p{2.4cm}|c|c|c|}
         \hline
-        \textbf{X} & \textbf{Y} & \textbf{Support} & \textbf{Confidence} & \textbf{Lift} \\ \hline
+        \textbf{X} & \textbf{Y} & \textbf{Sup.} & \textbf{Conf.} & \textbf{Lift} \\ \hline
         \{other vegetables, citrus fruit\} & \{root vegetables\} & 102 & 35.92\% & 3.30 \\ \hline
         \{yogurt, other vegetables\} & \{whipped/sour cream\} & 100 & 23.42\% & 3.27 \\ \hline
         \{tropical fruit, other vegetables\} & \{root vegetables\} & 121 & 34.28\% & 3.14 \\ \hline
@@ -598,6 +600,9 @@ Michiel O. Noordewier, Geoffrey G. Towell, and Jude W. Shavlik. 1991. Training K
 
 \bibitem{mount1982catalogue}
 Stephen M. Mount. 1982. A catalogue of splice junction sequences. \textit{Nucleic Acids Research}, 10(2), 459--472.
+
+\bibitem{grahne2003efficiently}
+G\"{o}sta Grahne and Jianfei Zhu. 2003. Efficiently using prefix-trees in mining frequent itemsets. In \textit{Proceedings of the IEEE ICDM Workshop on Frequent Itemset Mining Implementations (FIMI'03)}, CEUR Workshop Proceedings, Vol. 90, Melbourne, Florida, USA.
 
 \end{thebibliography}
 
