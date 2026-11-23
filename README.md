@@ -21,6 +21,8 @@ Data-Mining-FIM-Group-7/
 ├── experiments/            # Mã nguồn chương 2: Thực nghiệm
 ├── tests/                  # Kiểm thử tự động
 ├── notebooks/              # Demo notebook
+├── docs/                   # Báo cáo
+├── tools/                  # Thư viện SPMF - `spmf.jar`
 ├── data/                   # Dữ liệu thực nghiệm và kết quả
 ├── demo.jl                 # Mã nguồn CLI để chạy hai cài đặt FP-growth cho .txt
 ├── download_benchmark.jl   # Mã nguồn tải tự động 5 tập dữ liệu benchmark từ SPMF
