@@ -68,9 +68,9 @@ julia --project=. download_app_data.jl
 ```
 Dữ liệu cho ứng dụng 1 - phân tích giỏ hàng sẽ được lưu ở `data/market_basket/` và ứng 2 - phân tích dữ liệu sinh học lưu ở `data/splice/`.
 
-## Dữ liệu sử dụng
+## 4. Dữ liệu sử dụng
 
-### 1. Các tập dữ liệu Benchmark
+### 4.1. Các tập dữ liệu Benchmark
 Nguồn: [SPMF Open-Source Data Mining Library — Public Datasets](https://www.philippe-fournier-viger.com/spmf/index.php?link=datasets.php)
 
 | Tập dữ liệu | Đặc điểm | Link tải |
@@ -81,21 +81,45 @@ Nguồn: [SPMF Open-Source Data Mining Library — Public Datasets](https://www.
 | **Retail** | Thưa (88,162 giao dịch) | [retail.txt](https://www.philippe-fournier-viger.com/spmf/publicdatasets/retail.txt) |
 | **T10I4D100K** | Tổng hợp, thưa (100,000 giao dịch) | [T10I4D100K.txt](https://www.philippe-fournier-viger.com/spmf/publicdatasets/T10I4D100K.txt) |
 
-### 2. Tập dữ liệu chương 3: Ứng dụng thực tế
+### 4.2. Tập dữ liệu chương 3: Ứng dụng thực tế
 
 | Ứng dụng | Tập dữ liệu | Link tải |
 | :--- | :--- | :--- |
 | **Ứng dụng 1 (Market Basket)** | Groceries Dataset | [groceries.csv](https://raw.githubusercontent.com/stedy/Machine-Learning-with-R-datasets/master/groceries.csv) |
 | **Ứng dụng 2 (DNA Splice-junction)** | UCI Molecular Biology (Splice) | [splice.data](https://archive.ics.uci.edu/ml/machine-learning-databases/molecular-biology/splice-junction-gene-sequences/splice.data) |
 
-### 4.2. Chạy kiểm thử tự động
+## 5. Cách chạy và Ví dụ sử dụng cụ thể
+
+### 5.1. Chạy thuật toán FP-Growth qua `demo.jl`
+
+File `demo.jl` hỗ trợ khai thác tập phổ biến trên các file SPMF định dạng `.txt` với các tham số phụ sau:
+
+* `--minsup`, `-s`: nếu số thực trong khoảng $(0,1]$ thì được hiểu là minimum support, nếu là số nguyên $> 1$ thì được hiểu là minimum support count. Mặc định: `0.6`.
+* `--impl`, `-m`: phiên bản sử dụng. Mặc định là `opt`.
+    - Cơ bản: `basic`
+    - Có tối ưu: `opt`
+    - Chạy cả hai và đối chiếu kết quả: `both`
+* `--output`, `-o`: đường dẫn tệp xuất kết quả. Mặc định: `out.txt`.
+
+**Ví dụ:**
+
+```bash
+# Chạy bản tối ưu trên tập dữ liệu mẫu (Han et al., 2000) với minsup = 0.6
+julia --project=. demo.jl data/toy/han2000.txt --minsup 0.6 --impl opt --output out.txt
+
+# Chạy cả 2 để so sánh thời gian và kiểm chứng khớp 100%
+julia --project=. demo.jl data/benchmark/chess.txt --minsup 0.8 --impl both --output chess_out.txt
+
+```
+
+### 5.2. Chạy kiểm thử tự động
 
 ```bash
 julia --project=. tests/runtests.jl
 
 ```
 
-### 4.3. Chạy chương 3: Ứng dụng thực tế
+### 5.3. Chạy chương 3: Ứng dụng thực tế
 
 * **Ứng dụng 1 — Phân tích giỏ hàng (Market Basket Analysis):**
 ```bash
@@ -106,7 +130,6 @@ julia --project=. applications/app1_market_basket.jl
 julia --project=. applications/app1_market_basket.jl --minsup 0.005 --minconf 0.3 --top 15
 
 ```
-
 
 Kết quả được lưu tại `data/results/app1_market_basket/association_rules.csv`.
 * **Ứng dụng 2 — Khai thác mẫu chuỗi DNA (UCI Splice-junction):**
@@ -119,10 +142,9 @@ julia --project=. applications/app2_splice.jl --minsup 0.35 --top 15
 
 ```
 
-
 Kết quả được lưu tại `data/results/app2_splice/`.
 
-### 4.4. Chạy chương 2: thực nghiệm
+### 5.4. Chạy chương 2: thực nghiệm
 
 ```bash
 julia --project=. experiments/exp1_correctness.jl
