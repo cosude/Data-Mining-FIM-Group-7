@@ -40,6 +40,28 @@ MSSV: 24127549}
 \section{Chương 1: Cài đặt}
 
 \subsection{Xử lý đầu vào và đầu ra}
+\label{subsec:io}
+Chương trình đọc và ghi dữ liệu theo định dạng của thư viện SPMF \cite{fournierviger2014spmf} để có thể đối chiếu trực tiếp kết quả với SPMF. Các hàm xử lý đầu vào và đầu ra được cài đặt trong \texttt{src/utils.jl}.
+
+\textbf{Đọc CSDL - \texttt{read\_spmf}:}
+Mỗi dòng của file đầu vào là một giao dịch, gồm các item là số nguyên dương cách nhau bởi dấu cách. Hàm duyệt từng dòng, bỏ qua dòng trống và các dòng metadata bắt đầu bằng \texttt{\#}, \texttt{\%} hoặc \texttt{@}, chuyển các item sang kiểu \texttt{Int} và trả về CSDL dạng \texttt{Vector\{Vector\{Int\}\}}. Do giao dịch là một tập hợp, các item trùng lặp trong cùng một dòng được loại bỏ bằng \texttt{unique!}. Nếu không, hàm \texttt{count\_supports} sẽ đếm một item nhiều lần trong cùng một giao dịch, làm support của item đó bị tăng sai và có thể khiến một item không phổ biến vượt ngưỡng minsupport.
+
+\textbf{Chuyển đổi ngưỡng - \texttt{minsup\_to\_count}:}
+Giải thuật làm việc với ngưỡng tuyệt đối $\xi$, tức số giao dịch tối thiểu, trong khi người dùng thường nhập ngưỡng tương đối. Với $minsup \in (0, 1]$, ngưỡng tuyệt đối được tính như sau:
+\begin{equation}
+    \xi = \lceil minsup \times |DB| \rceil
+    \label{eq:minsup-count}
+\end{equation}
+Một itemset $X$ là phổ biến khi $count(X) \geq minsup \times |DB|$. Vì $count(X)$ là số nguyên, điều kiện này tương đương với $count(X) \geq \xi$, trong đó $\xi$ là số nguyên nhỏ nhất không nhỏ hơn $minsup \times |DB|$, tức phép làm tròn lên. Chẳng hạn với $minsup = 0.5$ và $|DB| = 5$, ta có $\xi = 3$; nếu làm tròn xuống thành $2$, các itemset chỉ xuất hiện trong $40\%$ số giao dịch sẽ bị nhận nhầm là phổ biến. Công thức \eqref{eq:minsup-count} cũng là cách SPMF tính ngưỡng tuyệt đối, nhờ đó kết quả của hai cài đặt có thể so khớp với nhau. Với $minsup > 1$, giá trị được hiểu trực tiếp là số đếm tuyệt đối. Cần lưu ý rằng phép nhân số thực dấu phẩy động có sai số làm tròn, ví dụ $0.07 \times 100$ cho kết quả $7.000000000000001$ nên $\xi = 8$ thay vì $7$; SPMF cũng gặp hiện tượng này do cùng sử dụng số thực dấu phẩy động.
+
+\textbf{Ghi kết quả - \texttt{write\_spmf}:}
+Mỗi tập phổ biến được ghi trên một dòng theo định dạng của SPMF, gồm các item cách nhau bởi dấu cách và support ở cuối dòng, ví dụ \texttt{1 3 5 \#SUP: 4}. Các item trong mỗi itemset được sắp tăng dần để thuận tiện cho việc so sánh với kết quả của SPMF.
+
+\textbf{Tham số dòng lệnh:}
+Chương trình \texttt{demo.jl} nhận tham số dòng lệnh thông qua thư viện \texttt{ArgParse.jl}, gồm: đường dẫn file CSDL đầu vào (bắt buộc), ngưỡng \texttt{-{}-minsup} (\texttt{-s}), phiên bản cài đặt \texttt{-{}-impl} (\texttt{-m}, nhận giá trị \texttt{basic}, \texttt{opt} hoặc \texttt{both}) và đường dẫn file kết quả \texttt{-{}-output} (\texttt{-o}). Ví dụ:
+
+\texttt{julia -{}-project=. demo.jl data/toy/han2000.txt}\\
+\texttt{\phantom{xx}-{}-minsup 0.6 -{}-impl opt -{}-output out.txt}
 
 \subsection{Cài đặt cấu trúc dữ liệu FP-tree}
 \label{subsec:data-structures}
@@ -67,7 +89,7 @@ Nhìn chung, cách cài đặt cơ bản trên đã hiện thực đầy đủ c
 Để xây FP-tree, cần duyệt cơ sở dữ liệu hai lần.
 
 Duyệt CSDL lần 1:
-Trong hàm \texttt{fptree\_construction}, CSDL được duyệt lần đầu bằng hàm \texttt{count\_supports} để đếm số lần xuất hiện - support count của tất cả item. Tiếp theo, các item thõa ngưỡng hỗ trợ tối thiểu - minsupport được sắp xếp giảm dần theo support count, tạo thành F-List. Các item trong F-List sẽ trở thành một dòng trong Header Table.
+Trong hàm \texttt{fptree\_construction}, CSDL được duyệt lần đầu bằng hàm \texttt{count\_supports} để đếm số lần xuất hiện - support count của tất cả item. Tiếp theo, các item thõa ngưỡng hỗ trợ tối thiểu - minsupport được sắp xếp giảm dần theo support count, tạo thành F-List (ký hiệu là $L$ trong \cite{han2000mining}). Các item trong F-List sẽ trở thành một dòng trong Header Table.
 
 Duyệt CSDL lần 2:
 Ta khởi tạo một \texttt{FPTree}, tiếp tục duyệt lại từng giao dịch (\texttt{Trans}) trong CSDL. Tại mỗi giao dịch, hàm \texttt{filter\_and\_sort} sẽ lọc và sắp xếp các item phổ biến dựa vào F-List.
@@ -78,9 +100,10 @@ Hàm \texttt{insert\_tree!}:
 \begin{enumerate}
     \item Lấy item đầu tiên $p = \texttt{p\_P[1]}$:
     \begin{enumerate}
-        \item Nếu nút đang xét $T$ có con là item $p$: tăng count của nút con thêm 1.
-        \item Ngược lại: tạo nút con mới $N$ có nhãn $p$, gán \texttt{count = 1} cho $T$.
+        \item Nếu nút đang xét $T$ có con $N$ là item $p$: tăng count của $N$ thêm \texttt{weight}.
+        \item Ngược lại: tạo nút con mới $N$ của $T$ có nhãn $p$, gán \texttt{count = weight} cho $N$.
     \end{enumerate}
+    Trọng số \texttt{weight} bằng $1$ khi xây FP-tree từ CSDL gốc, đúng như mô tả trong \cite{han2000mining}. Khi xây conditional FP-tree, mỗi đường tiền tố được chèn với \texttt{weight} bằng count của đường đó (xem~\ref{subsec:fp-growth}).
     \item Khi nút $N$ được tạo với nhãn item $p$:
     \begin{enumerate}
         \item Nếu dòng của item $p$ trong Header Table chưa có \texttt{node\_link}: gán nút $N$ trực tiếp làm \texttt{header\_of\_node\_link}.
@@ -94,6 +117,50 @@ Quá trình chèn một giao dịch \texttt{Trans} vào cây tiêu tốn thời 
 
 \subsection{Cài đặt giải thuật FP-growth}
 \label{subsec:fp-growth}
+Sau khi xây FP-tree, các tập phổ biến được khai thác bằng giải thuật FP-growth, tức Algorithm 2 trong \cite{han2000mining}. Thay vì sinh và kiểm tra các tập ứng viên như Apriori \cite{agrawal1994fast}, FP-growth sử dụng phương pháp phát triển mẫu từ các mảnh (\textit{pattern fragment growth}): với mỗi item $a_i$, giải thuật chỉ xét phần dữ liệu có chứa $a_i$, gọi là cơ sở mẫu điều kiện (\textit{conditional pattern base}), xây từ đó một FP-tree nhỏ hơn gọi là \textit{conditional FP-tree}, rồi tiếp tục khai thác đệ quy trên cây này. Đây là cách tiếp cận chia để trị: bài toán tìm mọi tập phổ biến được chia thành các bài toán con theo từng item, mỗi bài toán con chỉ làm việc trên một CSDL thu nhỏ.
+
+Giải thuật được cài đặt trong \texttt{src/algorithm/fpgrowth.jl}. Hàm \texttt{fpgrowth(tree, $\xi$)} tương ứng với lời gọi \textit{FP-growth(FP-tree, null)} của bài báo và gọi hàm đệ quy \texttt{\_fpgrowth!(patterns, tree, $\alpha$, $\xi$)}. Trong đó, $\alpha$ là hậu tố (\textit{suffix}) chung của các tập phổ biến đang được phát triển, ban đầu là tập rỗng, và \texttt{patterns} là danh sách dùng chung để lưu các cặp (itemset, support) tìm được. Bảng \ref{tab:fpgrowth-mapping} đối chiếu từng dòng của Algorithm 2 với cài đặt.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Đối chiếu Algorithm 2 \cite{han2000mining} với cài đặt}
+    \label{tab:fpgrowth-mapping}
+    \renewcommand{\arraystretch}{1.2}
+    \resizebox{\columnwidth}{!}{
+    \begin{tabular}{|c|l|l|}
+        \hline
+        \textbf{Dòng} & \textbf{Bước trong bài báo} & \textbf{Cài đặt} \\ \hline
+        (1) & Kiểm tra cây là đường đơn $P$ & \texttt{single\_path} \\ \hline
+        (2)--(3) & Sinh các tổ hợp $\beta$ trên $P$ & \texttt{generate\_combinations!} \\ \hline
+        (4) & Duyệt từng item $a_i$ trong header table & vòng lặp trên \texttt{tree.flist} \\ \hline
+        (5) & Sinh tập phổ biến $\beta = a_i \cup \alpha$ & \texttt{push!(patterns, ...)} \\ \hline
+        (6) & Xây conditional pattern base và $Tree_\beta$ & \texttt{build\_conditional\_pattern\_base}, \\
+            & & \texttt{fptree\_construction} \\ \hline
+        (7)--(8) & Gọi đệ quy nếu $Tree_\beta \neq \emptyset$ & \texttt{\_fpgrowth!} \\ \hline
+    \end{tabular}
+    }
+\end{table}
+
+\textbf{Trường hợp cây là một đường đơn - dòng (1)--(3):}
+Hàm \texttt{single\_path} đi từ nút gốc xuống theo nút con duy nhất. Nếu gặp một nút có nhiều hơn một con, cây không phải là đường đơn và hàm trả về \texttt{nothing}; ngược lại, hàm trả về danh sách các nút trên đường đi. Khi cây là một đường đơn $P$, các tập phổ biến cần tìm chính là các tổ hợp khác rỗng $\beta$ của các nút trên $P$, ghép với hậu tố $\alpha$ (Lemma 3.2 \cite{han2000mining}). Hàm \texttt{generate\_combinations!} sinh $2^{|P|} - 1$ tổ hợp này bằng phương pháp quay lui: tại mỗi nút có hai lựa chọn là không lấy hoặc lấy nút đó vào $\beta$.
+
+Support của $\beta$ bằng count nhỏ nhất của các nút trong $\beta$. Lý do là count của các nút giảm dần theo chiều từ gốc xuống lá, vì mọi giao dịch đi qua một nút đều đi qua nút cha của nó. Trên một đường đơn, các giao dịch đi tới nút sâu nhất của $\beta$ cũng đi qua mọi nút còn lại của $\beta$, nên support của $\beta$ bằng count của nút sâu nhất, cũng là count nhỏ nhất. Trường hợp này cho phép kết thúc đệ quy mà không cần xây thêm conditional FP-tree.
+
+\textbf{Trường hợp tổng quát - dòng (4)--(8):}
+Các item trong header table được duyệt từ cuối F-List lên, tức từ item có support thấp nhất, giống Example 2 trong \cite{han2000mining}. Với mỗi item $a_i$:
+\begin{enumerate}
+    \item Sinh tập phổ biến $\beta = \{a_i\} \cup \alpha$ với support bằng support của $a_i$ lưu trong header table.
+    \item Xây conditional pattern base của $\beta$ bằng hàm \texttt{build\_conditional\_pattern\_base}: lần theo chuỗi node-link của $a_i$ để lấy mọi nút mang nhãn $a_i$ (Property 3.1), từ mỗi nút đi ngược theo con trỏ \texttt{parent} lên tới gốc để lấy đường tiền tố (\textit{prefix path}), rồi đảo ngược đường này để các item theo đúng thứ tự F-List. Mỗi đường tiền tố mang count của nút $a_i$ tương ứng, vì trong số các giao dịch đi qua đường tiền tố đó, chỉ có bấy nhiêu giao dịch chứa $a_i$ (Property 3.2).
+    \item Xây conditional FP-tree $Tree_\beta$ bằng cách gọi lại hàm \texttt{fptree\_construction} (mục~\ref{subsec:fptree-construction}), với CSDL là các đường tiền tố và trọng số \texttt{weights} là count của từng đường. Nhờ trọng số, mỗi đường tiền tố có count $c$ chỉ cần chèn một lần thay vì lặp lại $c$ lần. Các item có tổng count nhỏ hơn $\xi$ trong conditional pattern base bị loại bỏ ngay ở bước này.
+    \item Nếu $Tree_\beta$ khác rỗng, gọi đệ quy \texttt{\_fpgrowth!} với $Tree_\beta$ và hậu tố mới $\beta$.
+\end{enumerate}
+
+Ví dụ, trong Example 2 của \cite{han2000mining} với $\xi = 3$, conditional pattern base của item $m$ là $\{(f\!:\!2, c\!:\!2, a\!:\!2), (f\!:\!1, c\!:\!1, a\!:\!1, b\!:\!1)\}$. Item $b$ chỉ có tổng count bằng $1$ nên bị loại, và conditional FP-tree của $m$ là đường đơn $\langle f\!:\!3, c\!:\!3, a\!:\!3 \rangle$. Theo dòng (1)--(3), từ đường đơn này giải thuật sinh trực tiếp $2^3 - 1 = 7$ tập phổ biến $\{fm, cm, am, fcm, fam, cam, fcam\}$, cùng có support bằng $3$, mà không cần gọi đệ quy thêm.
+
+\textbf{Tính dừng và tính đúng đắn:}
+Conditional FP-tree của $a_i$ chỉ chứa các item đứng trước $a_i$ trong F-List, nên số item giảm dần qua mỗi tầng đệ quy và độ sâu đệ quy không vượt quá độ dài của F-List. Mọi tập được sinh ra đều phổ biến, vì các item không phổ biến đã bị loại khi xây conditional FP-tree, nên giải thuật không phải kiểm tra lại support của bất kỳ tập ứng viên nào. Theo Lemma 3.1 \cite{han2000mining}, với $B$ là conditional pattern base của $\alpha$ và $\gamma$ là một itemset trong $B$, support của $\alpha \cup \gamma$ trong CSDL gốc đúng bằng support của $\gamma$ trong $B$; do đó support tính trên các conditional FP-tree cũng chính là support trong CSDL gốc.
+
+Cài đặt cơ bản chỉ kiểm tra trường hợp toàn bộ cây là một đường đơn, đúng như bài báo gốc. Phiên bản tối ưu mở rộng bước này thành đường tiền tố đơn (\textit{single prefix-path}), xem mục~\ref{subsec:optimization}.
 
 \subsection{Các kỹ thuật tối ưu hóa bộ nhớ và tốc độ cho giải thuật FP-growth}
 \label{subsec:optimization}
