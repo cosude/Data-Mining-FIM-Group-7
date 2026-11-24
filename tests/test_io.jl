@@ -29,6 +29,10 @@ using .FPGrowth
         @test opts["minsup"] == 0.01
         @test opts["input"] == "data/x.txt"
         @test opts["output"] == "out.txt"
-        @test parse_cli(["data/x.txt", "-s", "2"])["output"] == "output.txt"
+        defaults = parse_cli(["data/x.txt"])
+        @test defaults["minsup"] == 0.6
+        @test defaults["impl"] == "opt"
+        @test defaults["output"] == "out.txt"
+        @test parse_cli(["data/x.txt", "-m", "both"])["impl"] == "both"
     end
 end

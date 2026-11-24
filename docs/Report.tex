@@ -73,7 +73,7 @@ Mỗi nút trong FP-tree gồm có các thuộc tính: \texttt{item\_name} - tê
 Để phục vụ cho giải thuật xây dựng FP-tree (xem~\ref{subsec:fptree-construction}) và FP-growth (xem~\ref{subsec:fp-growth}), cấu trúc nút được tổ chức thêm hai trường:
 \begin{enumerate}
     \item \texttt{parent::Union\{FPNode, Nothing\}}: nút cha.
-    \item \texttt{children::Dict\{Int, FPNode}\}: tập các nút con.
+    \item \texttt{children::Dict\{Int, FPNode\}}: tập các nút con.
 \end{enumerate}
 
 \texttt{HeaderTableEntry}:
@@ -174,7 +174,7 @@ Cài đặt cơ bản chèn các item trong giao dịch sử dụng đệ quy. V
 Ở lượt duyệt CSDL lần hai, thao tác lọc và sắp xếp các item phổ biến ở cài đặt cơ bản khởi tạo cấu trúc \texttt{Set} mới ứng với mỗi giao dịch xét. Ta có thể tối ưu bằng cách sử dụng một mảng nhị phân (BitArray) chia sẻ chung cho các giao dịch. Các bit tương ứng với item trong giao dịch được bật lên để lọc tuần tự theo F-List, sau đó được tắt đi để tái sử dụng cho giao dịch tiếp theo mà không cần cấp phát thêm bộ nhớ.
 
 \textbf{Sử dụng single-prefix path:}
-Ở cài đặt cơ bản, thuật toán kiểm tra FP-tree có hoàn toàn là đường đi đơn không (single path) nhằm khai thác trực tiếp các tổ hợp của các item trên đường đi đó thay vì gọi đệ quy. Để khai thác kỹ thuật này một cách tối đa, ta có thể tách FP-tree cũng như các conditional FP-tree thành hai phần: đường tiền tố đơn $P$ và phần đa nhánh còn lại $Q$. Sau khi khai thác trực tiếp các tổ hợp item trên $P$, ta tiếp tục khai thác $Q$ với nút gốc của $Q$ (tức nút cuối của $P$) xem như rỗng. Các tập phổ biến thu được sẽ có dạng tích Descartes $P \times Q$. Phương pháp tối ưu này được chính tác giả của bài báo gốc cải tiến vào năm 2004 \cite{han2004mining}, tức 4 năm sau khi bài báo gốc được xuất bản. 
+Ở cài đặt cơ bản, thuật toán kiểm tra FP-tree có hoàn toàn là đường đi đơn không (single path) nhằm khai thác trực tiếp các tổ hợp của các item trên đường đi đó thay vì gọi đệ quy. Để khai thác kỹ thuật này một cách tối đa, ta có thể tách FP-tree cũng như các conditional FP-tree thành hai phần: đường tiền tố đơn $P$ và phần đa nhánh còn lại $Q$. Sau khi khai thác trực tiếp các tổ hợp item trên $P$, ta tiếp tục khai thác $Q$ với nút gốc của $Q$ (tức nút cuối của $P$) xem như rỗng. Tập phổ biến thu được gồm ba phần: các tổ hợp trên $P$, các tập phổ biến của $Q$, và tích Descartes $P \times Q$ của hai phần này, tức $freq(P) \cup freq(Q) \cup (freq(P) \times freq(Q))$. Phương pháp tối ưu này được chính tác giả của bài báo gốc cải tiến vào năm 2004 \cite{han2004mining}, tức 4 năm sau khi bài báo gốc được xuất bản. 
 
 \subsection{Kết quả so sánh cài đặt tối ưu và cơ bản}
 Khi chạy kiểm thử hai cài đặt trên trong môi trường Google Colab và $5$ cơ sở dữ liệu ở ~\ref{subsec:environment-datasets}, cài đặt tối ưu có thời gian chạy nhanh hơn khoảng $1.68$ lần và tiết kiệm bộ nhớ khoảng $2.81$ lần so với cài đặt cơ bản.

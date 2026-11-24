@@ -52,8 +52,8 @@ end
 """
     parse_cli(args = ARGS) -> Dict{String,Any}
 
-Đọc tham số dòng lệnh. Ví dụ:
-`julia --project=. demo.jl --minsup 0.01 data/benchmark.txt --output out.txt`
+Đọc tham số dòng lệnh của `demo.jl`. Ví dụ:
+`julia --project=. demo.jl data/toy/han2000.txt --minsup 0.6 --impl opt --output out.txt`
 """
 function parse_cli(args::AbstractVector{<:AbstractString} = ARGS)
     s = ArgParseSettings(description = "FP-Growth: khai thác tập phổ biến từ file SPMF")
@@ -64,10 +64,14 @@ function parse_cli(args::AbstractVector{<:AbstractString} = ARGS)
         "--minsup", "-s"
             help = "ngưỡng minsup: (0,1] là tương đối, > 1 là số đếm tuyệt đối"
             arg_type = Float64
-            required = true
+            default = 0.6
+        "--impl", "-m"
+            help = "phiên bản cài đặt: basic, opt hoặc both"
+            arg_type = String
+            default = "opt"
         "--output", "-o"
             help = "đường dẫn file kết quả"
-            default = "output.txt"
+            default = "out.txt"
     end
     return parse_args(args, s)
 end

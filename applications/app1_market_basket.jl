@@ -81,7 +81,7 @@ function main()
     mapping = load_mapping(joinpath(data_dir, "mapping.csv"))
     total_trans = length(db)
     
-    minsup_count = minsup_arg <= 1.0 ? minsup_to_count(minsup_arg, total_trans) : round(Int, minsup_arg)
+    minsup_count = minsup_to_count(minsup_arg, total_trans)
     itemsets = fpgrowth(OptFPTree, db, minsup_count)
     rules = generate_association_rules(itemsets, total_trans, minconf)
     

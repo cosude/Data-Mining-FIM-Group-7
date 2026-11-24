@@ -41,9 +41,6 @@ rel_support(itemset, db_sets) = count(t -> all(in(t), itemset), db_sets) / lengt
 
 itemset_name(itemset, mapping) = join((mapping[i] for i in sort(itemset)), ", ")
 
-resolve_minsup(minsup_arg::Float64, n::Int) =
-    minsup_arg <= 1.0 ? minsup_to_count(minsup_arg, n) : round(Int, minsup_arg)
-
 function main()
     args = parse_commandline()
     minsup_arg = args["minsup"]
@@ -73,7 +70,7 @@ function main()
         for c in ("EI", "IE")
             db = dbs[c]
             n = length(db)
-            itemsets = fpgrowth(OptFPTree, db, resolve_minsup(minsup_arg, n))
+            itemsets = fpgrowth(OptFPTree, db, minsup_to_count(minsup_arg, n))
 
             # So với lớp N: growth rate = support trong lớp c / support trong N
             rows = map(itemsets) do (items, cnt)
@@ -97,7 +94,7 @@ function main()
     end
 
     # Đối chứng: lớp N (không có điểm nối) khai thác cùng ngưỡng
-    n_itemsets = fpgrowth(OptFPTree, dbs["N"], resolve_minsup(minsup_arg, length(dbs["N"])))
+    n_itemsets = fpgrowth(OptFPTree, dbs["N"], minsup_to_count(minsup_arg, length(dbs["N"])))
     println("\n=== Lớp N: $(length(dbs["N"])) đoạn DNA, minsup = $minsup_arg -> $(length(n_itemsets)) tập phổ biến ===")
     println("\nKết quả đã ghi vào: $out_dir")
 end
